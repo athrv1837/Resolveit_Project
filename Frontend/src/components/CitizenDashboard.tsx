@@ -14,6 +14,7 @@ import { Header } from "./shared/Header";
 import { Footer } from "./shared/Footer";
 import { StatCard } from "./shared/StatCard";
 import { ComplaintCard } from "./shared/ComplaintCard";
+import RoleGuard from './RoleGuard';
 
 const API_BASE = "http://localhost:8080/api";
 
@@ -133,12 +134,13 @@ export const CitizenDashboard: React.FC = () => {
   const userComplaints = Array.isArray(complaints) ? complaints : [];
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-50">
-      <Header
-        title="Citizen Portal"
-        subtitle="File & Track Complaints"
-        icon={<FileText className="w-6 h-6 text-white" />}
-      />
+    <RoleGuard allowed={['citizen', 'admin']}>
+      <div className="flex flex-col min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-50">
+        <Header
+          title="Citizen Portal"
+          subtitle="File & Track Complaints"
+          icon={<FileText className="w-6 h-6 text-white" />}
+        />
 
       <main className="flex-1">
         <div className="container-custom py-12">
@@ -380,7 +382,8 @@ export const CitizenDashboard: React.FC = () => {
         </div>
       </main>
 
-      <Footer />
-    </div>
+        <Footer />
+      </div>
+    </RoleGuard>
   );
 };

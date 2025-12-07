@@ -1,9 +1,9 @@
 package com.resolveit.resloveitbackend.controller;
 
 import com.resolveit.resloveitbackend.Model.Complaint;
-import com.resolveit.resloveitbackend.Model.ComplaintStatus;
 import com.resolveit.resloveitbackend.Model.Officer;
 import com.resolveit.resloveitbackend.Model.PendingOfficer;
+import com.resolveit.resloveitbackend.enums.ComplaintStatus;
 import com.resolveit.resloveitbackend.repository.ComplaintRepository;
 import com.resolveit.resloveitbackend.repository.OfficerRepository;
 import com.resolveit.resloveitbackend.repository.PendingOfficerRepository;
@@ -28,6 +28,8 @@ public class AdminController {
     @Autowired
     private ComplaintRepository complaintRepository; // Required for assignment
 
+    @Autowired
+    private OfficerRepository officerRepository;
     // === EXISTING: Approve Officer ===
     @PostMapping("/approve/{id}")
     public ResponseEntity<String> approveOfficer(@PathVariable Long id) {
@@ -40,7 +42,8 @@ public class AdminController {
                 .name(pending.getName())
                 .email(pending.getEmail())
                 .password(pending.getPassword())
-                .department(pending.getDepartment())
+            .department(pending.getDepartment())
+            .role("ROLE_OFFICER")
                 .build();
 
         officerRepo.save(newOfficer);
@@ -67,6 +70,7 @@ public class AdminController {
             return ResponseEntity.badRequest().body("officerEmail is required");
         }
 
+        // Simple analytics for admin dashboard
         Optional<Complaint> complaintOpt = complaintRepository.findById(complaintId);
         if (complaintOpt.isEmpty()) {
             return ResponseEntity.status(404).body("Complaint not found with ID: " + complaintId);
@@ -83,5 +87,25 @@ public class AdminController {
         complaintRepository.save(complaint);
 
         return ResponseEntity.ok("Officer " + officerOpt.get().getName() + " assigned successfully.");
+    }
+
+    //Simple analytics for admin dashboard
+    @GetMapping("/analytics/overview")
+    public ResponseEntity<?> getAnalyticsOverview() {
+        long totalComplaints = complaintRepository.count();
+        long pending = complaintRepository.findAll().stream().filter(c -> c.getStatus().name().equals("PENDING")).count();
+        long assigned = complaintRepository.findAll().stream().filter(c -> c.getStatus().name().equals("ASSIGNED")).count();
+        long resolved = complaintRepository.findAll().stream().filter(c -> c.getStatus().name().equals("RESOLVED")).count();
+        long highPriority = complaintRepository.findAll().stream().filter(c -> c.getPriority().name().equals("HIGH")).count();
+        long officers = officerRepository.count();
+
+        return ResponseEntity.ok(Map.of(
+                "totalComplaints", totalComplaints,
+                "pending", pending,
+                "assigned", assigned,
+                "resolved", resolved,
+                "highPriority", highPriority,
+                "officers", officers
+        ));
     }
 }

@@ -1,5 +1,5 @@
 import React from "react";
-import { Calendar, MapPin, MessageSquare } from "lucide-react";
+import { Calendar, MapPin, MessageSquare, FileImage, User } from "lucide-react";
 import { Complaint } from "../../types";
 
 // ✅ Updated Props — now includes showPriority
@@ -124,6 +124,14 @@ export const ComplaintCard: React.FC<ComplaintCardProps> = ({
                 {safePriority.toUpperCase()} PRIORITY
               </span>
             )}
+
+            {/* Assigned Officer */}
+            {complaint.assignedTo && (
+              <span className="ml-2 text-xs text-slate-600 flex items-center gap-2">
+                <User className="w-3.5 h-3.5 text-slate-400" />
+                <span className="font-medium">{complaint.assignedTo}</span>
+              </span>
+            )}
           </div>
 
           {/* Title */}
@@ -162,6 +170,13 @@ export const ComplaintCard: React.FC<ComplaintCardProps> = ({
             <MapPin className="w-4 h-4" />
             {safeCategory}
           </span>
+          {/* Attachments */}
+          {complaint.attachments && complaint.attachments.length > 0 && (
+            <span className="flex items-center gap-1.5">
+              <FileImage className="w-4 h-4 text-slate-500" />
+              <span className="text-slate-600">{complaint.attachments.length}</span>
+            </span>
+          )}
         </div>
 
         {/* Replies */}

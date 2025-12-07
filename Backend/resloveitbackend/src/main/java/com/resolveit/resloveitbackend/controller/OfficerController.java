@@ -29,14 +29,12 @@ public class OfficerController {
     private OfficerRepository officerRepo;
 
     @Autowired
-    private ComplaintRepository complaintRepository;  // For officer's assigned complaints
+    private ComplaintRepository complaintRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    /**
-     * Officer Registration - Submit for admin approval
-     */
+    
     @PostMapping(value = "/officers/register", consumes = {"multipart/form-data"})
     public ResponseEntity<String> registerOfficer(
             @RequestPart("name") String name,
@@ -80,9 +78,6 @@ public class OfficerController {
         }
     }
 
-    /**
-     * Get pending officer requests (Admin only)
-     */
     @GetMapping("/officers/pending")
     public ResponseEntity<List<PendingOfficer>> getPendingOfficers() {
         List<PendingOfficer> pending = pendingRepo.findAll().stream()
@@ -91,18 +86,12 @@ public class OfficerController {
         return ResponseEntity.ok(pending);
     }
 
-    /**
-     * Get all approved officers (for Admin assign dropdown)
-     */
+   
     @GetMapping("/officers")
     public ResponseEntity<List<Officer>> getAllApprovedOfficers() {
         return ResponseEntity.ok(officerRepo.findAll());
     }
 
-    /**
-     * NEW: Get complaints assigned to the logged-in officer
-     * Usage: GET /api/officer/complaints?email=jamy@gmail.com
-     */
     @GetMapping("/officer/complaints")
     public ResponseEntity<List<Complaint>> getAssignedComplaints(@RequestParam String email) {
         if (email == null || email.isEmpty()) {

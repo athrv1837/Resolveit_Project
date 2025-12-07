@@ -10,11 +10,12 @@ import { Footer } from "./shared/Footer";
 import { StatCard } from "./shared/StatCard";
 import { ComplaintCard } from "./shared/ComplaintCard";
 import { Complaint, ComplaintStatus, ComplaintPriority } from "../types";
+import api from '../lib/api';
 
-const API_BASE = "http://localhost:8080/api";
+import RoleGuard from './RoleGuard';
 
 export const AdminDashboard: React.FC = () => {
-  const { getAuthHeaders } = useAuth();
+  const { getAuthHeaders, token } = useAuth();
 
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
@@ -44,22 +45,20 @@ export const AdminDashboard: React.FC = () => {
   // Fetch complaints
   useEffect(() => {
     fetchComplaints();
-  }, [getAuthHeaders]);
+  }, [token]);
 
   const fetchComplaints = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/complaints`, { headers: getAuthHeaders() });
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-      setComplaints(data.map((c: any) => ({
+      const data = await api.getAllComplaints(token ?? undefined);
+      setComplaints(Array.isArray(data) ? data.map((c: any) => ({
         ...c,
         id: Number(c.id),
         submittedAt: c.submittedAt || new Date().toISOString(),
         notes: c.notes || [],
         replies: c.replies || [],
         attachments: c.attachments || [],
-      })));
+      })) : []);
     } catch (err) {
       alert("Failed to load complaints.");
     } finally {
@@ -71,31 +70,30 @@ export const AdminDashboard: React.FC = () => {
   useEffect(() => {
     const fetchOfficers = async () => {
       try {
-        const res = await fetch(`${API_BASE}/officers`, { headers: getAuthHeaders() });
-        if (!res.ok) throw new Error();
-        const data = await res.json();
-        setOfficers(data.map((o: any) => ({
+        const data = await api.getOfficers(token ?? undefined);
+        console.log("Officers fetched:", data);
+        setOfficers(Array.isArray(data) ? data.map((o: any) => ({
           id: Number(o.id),
           email: o.email,
           name: o.name,
           department: o.department,
-        })));
+        })) : []);
       } catch (err) {
-        console.error("Failed to load officers");
+        console.error("Failed to load officers:", err);
       }
     };
     fetchOfficers();
-  }, [getAuthHeaders]);
+  }, [token]);
 
   // Fetch pending officer requests
   const fetchPendingOfficerRequests = async () => {
     setLoadingOfficers(true);
     try {
-      const res = await fetch(`${API_BASE}/officers/pending`, { headers: getAuthHeaders() });
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-      setPendingOfficerRequests(data);
+      const data = await api.getPendingOfficers(token ?? undefined);
+      console.log("Pending officers fetched:", data);
+      setPendingOfficerRequests(Array.isArray(data) ? data : []);
     } catch (err) {
+      console.error("Failed to load pending requests:", err);
       alert("Failed to load requests.");
     } finally {
       setLoadingOfficers(false);
@@ -106,7 +104,10 @@ export const AdminDashboard: React.FC = () => {
   const handleApproveOfficer = async (id: number) => {
     if (!confirm("Approve officer?")) return;
     try {
-      const res = await fetch(`${API_BASE}/admin/approve/${id}`, { method: "POST", headers: getAuthHeaders() });
+      const res = await fetch(`http://localhost:8080/api/admin/approve/${id}`, { 
+        method: "POST", 
+        headers: { ...getAuthHeaders() },
+      });
       if (!res.ok) throw new Error();
       setPendingOfficerRequests(prev => prev.filter(r => r.id !== id));
       alert("Officer approved!");
@@ -118,7 +119,10 @@ export const AdminDashboard: React.FC = () => {
   const handleRejectOfficer = async (id: number) => {
     if (!confirm("Reject officer?")) return;
     try {
-      const res = await fetch(`${API_BASE}/admin/reject/${id}`, { method: "POST", headers: getAuthHeaders() });
+      const res = await fetch(`http://localhost:8080/api/admin/reject/${id}`, { 
+        method: "POST", 
+        headers: { ...getAuthHeaders() },
+      });
       if (!res.ok) throw new Error();
       setPendingOfficerRequests(prev => prev.filter(r => r.id !== id));
       alert("Officer rejected.");
@@ -132,20 +136,15 @@ export const AdminDashboard: React.FC = () => {
     if (!selectedComplaint || !selectedOfficerEmail) return;
     setAssigning(true);
     try {
-      const res = await fetch(`${API_BASE}/admin/complaints/${selectedComplaint.id}/assign`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        body: JSON.stringify({ officerEmail: selectedOfficerEmail }),
-      });
-      if (!res.ok) throw new Error();
-
-      const updated = { ...selectedComplaint, assignedTo: selectedOfficerEmail, status: "assigned" as ComplaintStatus };
-      setComplaints(prev => prev.map(c => c.id === selectedComplaint.id ? updated : c));
-      setSelectedComplaint(updated);
+      const updated = await api.assignOfficer(selectedComplaint.id, selectedOfficerEmail, token ?? undefined);
+      const updatedComplaint = { ...selectedComplaint, assignedTo: selectedOfficerEmail, status: "assigned" as ComplaintStatus };
+      setComplaints(prev => prev.map(c => c.id === selectedComplaint.id ? updatedComplaint : c));
+      setSelectedComplaint(updatedComplaint);
       setShowAssignModal(false);
       setSelectedOfficerEmail("");
       alert("Officer assigned!");
-    } catch {
+    } catch (err) {
+      console.error("Failed to assign:", err);
       alert("Failed to assign.");
     } finally {
       setAssigning(false);
@@ -232,8 +231,9 @@ export const AdminDashboard: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-br from-slate-50 via-cyan-50 to-slate-50">
-      <Header title="Admin Panel" subtitle="System Control Center" icon={<Shield className="w-7 h-7 text-white" />} />
+    <RoleGuard allowed={['admin']}>
+      <div className="flex flex-col min-h-screen bg-gradient-to-br from-slate-50 via-cyan-50 to-slate-50">
+        <Header title="Admin Panel" subtitle="System Control Center" icon={<Shield className="w-7 h-7 text-white" />} />
 
       <main className="flex-1 container-custom py-12">
         {/* Stats */}
@@ -550,7 +550,8 @@ export const AdminDashboard: React.FC = () => {
         </div>
       )}
 
-      <Footer />
-    </div>
+        <Footer />
+      </div>
+    </RoleGuard>
   );
 };

@@ -1,7 +1,7 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { Complaint, ComplaintStatus, ComplaintPriority, Note, Reply, Officer } from '../types';
-
-const API_BASE = "http://localhost:8080/api";
+import api from '../lib/api';
+import { useAuth } from './AuthContext';
 
 interface ComplaintContextType {
   complaints: Complaint[];
@@ -28,32 +28,39 @@ const officers: Officer[] = [
 ];
 
 export const ComplaintProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const { user, token } = useAuth();
   const [complaints, setComplaints] = useState<Complaint[]>([]);
 
   const fetchComplaints = async () => {
     try {
-      const res = await fetch(`${API_BASE}/complaints`);
-      if (!res.ok) throw new Error("Failed to fetch complaints");
-      const data = await res.json();
-      setComplaints(data);
+      let data;
+      if (user?.role === 'admin') {
+        data = await api.getAllComplaints(token ?? undefined);
+      } else if (user?.role === 'officer') {
+        // officers may want all complaints too
+        data = await api.getAllComplaints(token ?? undefined);
+      } else {
+        data = await api.getUserComplaints(user?.email ?? '', token ?? undefined);
+      }
+      setComplaints(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error("Error fetching complaints:", err);
+      console.error('Error fetching complaints:', err);
     }
   };
 
-  const addComplaint = (data: Omit<Complaint, 'id' | 'status' | 'priority' | 'submittedAt' | 'notes' | 'replies'>) => {
-    const id = generateId();
-    const newComplaint: Complaint = {
-      ...data,
-      id,
-      status: 'pending',
-      priority: 'medium',
-      submittedAt: new Date(),
-      notes: [],
-      replies: [],
-    };
-    setComplaints(prev => [newComplaint, ...prev]);
-    return id;
+  useEffect(() => { fetchComplaints(); }, [user, token]);
+
+  const addComplaint = async (data: Omit<Complaint, 'id' | 'status' | 'priority' | 'submittedAt' | 'notes' | 'replies'> & { files?: File[] }) => {
+    try {
+      const res = await api.submitComplaint(data, user?.email ?? '', token ?? undefined);
+      // server returns ComplaintDto
+      setComplaints(prev => [res as Complaint, ...prev]);
+      return (res as any).id;
+    } catch (err) {
+      console.error('Error submitting complaint:', err);
+      alert('Failed to submit complaint');
+      return null;
+    }
   };
 
   const updateComplaintStatus = (id: string, status: ComplaintStatus) => {
@@ -66,18 +73,9 @@ export const ComplaintProvider: React.FC<{ children: ReactNode }> = ({ children 
 
   const assignComplaint = async (id: string, officerEmail: string) => {
     try {
-      const res = await fetch(`${API_BASE}/complaints/assign/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ officerEmail }),
-      });
-
-      if (!res.ok) throw new Error('Failed to assign complaint');
-      const updatedComplaint = await res.json();
-
-      setComplaints(prev =>
-        prev.map(c => (c.id === updatedComplaint.id ? updatedComplaint : c))
-      );
+      const updated = await api.assignOfficer(id, officerEmail, token ?? undefined);
+      // refresh list or update single
+      setComplaints(prev => prev.map(c => (c.id === (updated as any).id ? (updated as Complaint) : c)));
     } catch (err) {
       console.error('Error assigning complaint:', err);
       alert('Failed to assign complaint');

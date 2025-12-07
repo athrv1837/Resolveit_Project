@@ -10,6 +10,7 @@ import { Footer } from './shared/Footer';
 import { StatCard } from './shared/StatCard';
 import { ComplaintCard } from './shared/ComplaintCard';
 import { Complaint, ComplaintStatus } from '../types';
+import RoleGuard from './RoleGuard';
 
 const API_BASE = "http://localhost:8080/api";
 
@@ -161,12 +162,13 @@ export const OfficerDashboard: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-br from-slate-50 via-cyan-50 to-slate-50">
-      <Header 
-        title="Officer Portal" 
-        subtitle={`Welcome back, ${user.name || user.email.split('@')[0]}`} 
-        icon={<Shield className="w-7 h-7 text-white" />} 
-      />
+    <RoleGuard allowed={['officer', 'admin']}>
+      <div className="flex flex-col min-h-screen bg-gradient-to-br from-slate-50 via-cyan-50 to-slate-50">
+        <Header 
+          title="Officer Portal" 
+          subtitle={`Welcome back, ${user.name || user.email.split('@')[0]}`} 
+          icon={<Shield className="w-7 h-7 text-white" />} 
+        />
 
       <main className="flex-1 container-custom py-12">
         {/* Stats Grid */}
@@ -422,7 +424,8 @@ export const OfficerDashboard: React.FC = () => {
         </div>
       )}
 
-      <Footer />
-    </div>
+        <Footer />
+      </div>
+    </RoleGuard>
   );
 };

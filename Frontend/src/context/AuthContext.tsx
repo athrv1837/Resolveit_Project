@@ -28,11 +28,24 @@ interface AuthContextType {
   ) => Promise<void>;
   logout: () => void;
   getAuthHeaders: () => { [key: string]: string };
+  isAdmin: () => boolean;
+  isOfficer: () => boolean;
+  isCitizen: () => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const API_BASE = "http://localhost:8080/api";
+
+const normalizeRole = (roleRaw: any): UserRole => {
+  if (!roleRaw) return 'citizen';
+  const r = String(roleRaw).toLowerCase();
+  // strip common prefixes
+  const cleaned = r.replace(/^role[_-]?/, '').replace(/^roles?[_-]?/, '');
+  if (cleaned.includes('admin')) return 'admin';
+  if (cleaned.includes('officer')) return 'officer';
+  return 'citizen';
+};
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   children,
@@ -68,9 +81,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
           id: data.userId ?? data.id ?? null,
           email: data.email,
           name: data.name,
-          role:
-            (data.role?.toLowerCase().replace("role_", "") as UserRole) ||
-            "citizen",
+          role: normalizeRole(data.role),
         };
 
         setUser(restoredUser);
@@ -149,8 +160,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   // ✅ Common handler for successful login/register
   const handleAuthSuccess = (data: any) => {
     const token = data.token;
-    const role =
-      (data.role?.toLowerCase().replace("role_", "") as UserRole) || "citizen";
+    const role = normalizeRole(data.role);
 
     const userData: User = {
       id: data.userId ?? null,
@@ -177,9 +187,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const getAuthHeaders = () =>
     token ? { Authorization: `Bearer ${token}` } : {};
 
+  const isAdmin = () => user?.role === 'admin';
+  const isOfficer = () => user?.role === 'officer';
+  const isCitizen = () => user?.role === 'citizen';
+
   return (
     <AuthContext.Provider
-      value={{ user, token, loading, login, register, logout, getAuthHeaders }}
+      value={{ user, token, loading, login, register, logout, getAuthHeaders, isAdmin, isOfficer, isCitizen }}
     >
       {children}
     </AuthContext.Provider>

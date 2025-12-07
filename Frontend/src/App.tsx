@@ -14,7 +14,7 @@ import { useState } from "react";
 const queryClient = new QueryClient();
 
 const AppContent = () => {
-  const { user } = useAuth();
+  const { user, isAdmin, isOfficer } = useAuth();
   const [showLogin, setShowLogin] = useState(true);
 
   if (!user) {
@@ -25,16 +25,9 @@ const AppContent = () => {
     );
   }
 
-  switch (user.role) {
-    case 'citizen':
-      return <CitizenDashboard />;
-    case 'officer':
-      return <OfficerDashboard />;
-    case 'admin':
-      return <AdminDashboard />;
-    default:
-      return <CitizenDashboard />;
-  }
+  if (isAdmin()) return <AdminDashboard />;
+  if (isOfficer()) return <OfficerDashboard />;
+  return <CitizenDashboard />;
 };
 
 const App = () => (

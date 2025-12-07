@@ -1,4 +1,4 @@
-package com.resolveit.resloveitbackend.Model;
+package com.resolveit.resloveitbackend.enums;
 
 public enum ComplaintPriority {
     LOW,

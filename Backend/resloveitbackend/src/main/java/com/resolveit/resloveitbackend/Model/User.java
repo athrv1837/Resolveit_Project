@@ -2,6 +2,8 @@ package com.resolveit.resloveitbackend.Model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.resolveit.resloveitbackend.enums.Role;
+
 import jakarta.persistence.*;
 import java.time.Instant;
 import java.util.List;
