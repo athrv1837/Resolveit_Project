@@ -8,14 +8,14 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.2</version>
+        <version>3.3.4</version>
         <relativePath/> <!-- Lookup from Maven Central -->
     </parent>
 
     <groupId>com.resolveit</groupId>
-    <artifactId>resloveitbackend</artifactId>
+    <artifactId>resolveitbackend</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>resloveitbackend</name>
+    <name>resolveitbackend</name>
     <description>ResolveIt backend - Spring Boot + MySQL + JWT</description>
 
     <properties>
