@@ -137,8 +137,8 @@ export const CitizenDashboard: React.FC = () => {
     <RoleGuard allowed={['citizen', 'admin']}>
       <div className="flex flex-col min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-50">
         <Header
-          title="Citizen Portal"
-          subtitle="File & Track Complaints"
+          title="Citizen Grievance Portal"
+          subtitle="File, Track & Resolve Grievances"
           icon={<FileText className="w-6 h-6 text-white" />}
         />
 

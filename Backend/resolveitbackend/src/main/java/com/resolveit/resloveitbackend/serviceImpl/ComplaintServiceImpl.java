@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -31,6 +32,16 @@ public class ComplaintServiceImpl implements ComplaintService {
         this.complaintRepository = complaintRepository;
         this.userRepository = userRepository;
         this.officerRepository = officerRepository;
+    }
+
+    // ✅ NEW: Generate government reference number (GRV-YYYYMMDD-XXXXX)
+    // Generates a unique reference without relying on DB id (date + random 5-digit)
+    private String generateReferenceNumber() {
+        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyyMMdd");
+        String datePart = LocalDateTime.now().format(dateFormatter);
+        int random = java.util.concurrent.ThreadLocalRandom.current().nextInt(0, 100000);
+        String idPart = String.format("%05d", random);
+        return "GRV-" + datePart + "-" + idPart;
     }
 
     @Transactional
@@ -50,10 +61,13 @@ public class ComplaintServiceImpl implements ComplaintService {
             complaint.setSubmittedAt(LocalDateTime.now());
         }
 
+        // ✅ Generate reference number before saving to satisfy NOT NULL constraint
+        complaint.setReferenceNumber(generateReferenceNumber());
+
         Complaint saved = complaintRepository.save(complaint);
 
-        // Auto-assign if HIGH priority and at least one officer exists
-        if (saved.getPriority() == ComplaintPriority.HIGH) {
+        // Auto-assign if HIGH or URGENT priority and at least one officer exists
+        if (saved.getPriority() == ComplaintPriority.HIGH || saved.getPriority() == ComplaintPriority.URGENT) {
             List<Officer> officers = officerRepository.findAll();
             if (!officers.isEmpty()) {
                 // Find officer with least assigned complaints (simple availability heuristic)
@@ -63,12 +77,13 @@ public class ComplaintServiceImpl implements ComplaintService {
 
                 if (best != null) {
                     saved.setAssignedTo(best.getEmail());
+                    saved.setAssignedDepartment(best.getDepartment());  // ✅ Set department
                     saved.setStatus(ComplaintStatus.ASSIGNED);
-                    saved = complaintRepository.save(saved);
                 }
             }
         }
 
+        saved = complaintRepository.save(saved);
         return ComplaintMapper.toDto(saved);
     }
 

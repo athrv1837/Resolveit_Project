@@ -233,7 +233,7 @@ export const AdminDashboard: React.FC = () => {
   return (
     <RoleGuard allowed={['admin']}>
       <div className="flex flex-col min-h-screen bg-gradient-to-br from-slate-50 via-cyan-50 to-slate-50">
-        <Header title="Admin Panel" subtitle="System Control Center" icon={<Shield className="w-7 h-7 text-white" />} />
+        <Header title="Authority Control Panel" subtitle="Grievance Management & Audit" icon={<Shield className="w-7 h-7 text-white" />} />
 
       <main className="flex-1 container-custom py-12">
         {/* Stats */}

@@ -60,6 +60,8 @@ const getPriorityStyles = (priority?: string) => {
       return "bg-amber-100 text-amber-700 border-amber-200";
     case "low":
       return "bg-green-100 text-green-700 border-green-200";
+    case "urgent":
+      return "bg-red-100 text-red-700 border-red-200";
     default:
       return "bg-slate-100 text-slate-700 border-slate-200";
   }
@@ -99,9 +101,9 @@ export const ComplaintCard: React.FC<ComplaintCardProps> = ({
       <div className="flex items-start justify-between gap-4 mb-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 mb-3 flex-wrap">
-            {/* Complaint ID */}
+            {/* Grievance ID (Government style) */}
             <span className="font-mono text-sm font-bold text-cyan-600 tracking-wider">
-              #{complaint.id || "XXXX"}
+              {complaint.referenceNumber || `GRV-${complaint.id || "XXXX"}`}
             </span>
 
             {/* Status Badge */}
@@ -114,7 +116,7 @@ export const ComplaintCard: React.FC<ComplaintCardProps> = ({
               </span>
             )}
 
-            {/* Priority Badge — ONLY SHOW IF showPriority=true */}
+            {/* Priority Badge — SHOW FOR GOVERNMENT TRACKING */}
             {showPriority && (
               <span
                 className={`px-3 py-1.5 rounded-full text-xs font-bold border ${getPriorityStyles(
@@ -125,11 +127,16 @@ export const ComplaintCard: React.FC<ComplaintCardProps> = ({
               </span>
             )}
 
-            {/* Assigned Officer */}
+            {/* Assigned Officer & Department */}
             {complaint.assignedTo && (
               <span className="ml-2 text-xs text-slate-600 flex items-center gap-2">
                 <User className="w-3.5 h-3.5 text-slate-400" />
                 <span className="font-medium">{complaint.assignedTo}</span>
+                {complaint.assignedDepartment && (
+                  <span className="text-slate-500 px-2 py-1 bg-slate-100 rounded">
+                    {complaint.assignedDepartment}
+                  </span>
+                )}
               </span>
             )}
           </div>
@@ -152,10 +159,19 @@ export const ComplaintCard: React.FC<ComplaintCardProps> = ({
         </div>
       </div>
 
+      {/* Audit Metadata (Government Compliance) */}
+      {complaint.lastUpdatedAt && (
+        <div className="text-xs text-slate-500 mb-3 pb-3 border-b border-slate-100">
+          <span>
+            Last updated: {new Date(complaint.lastUpdatedAt).toLocaleDateString()} by {complaint.lastUpdatedBy || "System"}
+          </span>
+        </div>
+      )}
+
       {/* Footer */}
       <div className="flex items-center justify-between text-xs text-slate-500 pt-4 border-t border-slate-100">
         <div className="flex items-center gap-4">
-          {/* Date */}
+          {/* Submission Date */}
           <span className="flex items-center gap-1.5 font-medium">
             <Calendar className="w-4 h-4" />
             {safeDate.toLocaleDateString("en-US", {
@@ -170,11 +186,12 @@ export const ComplaintCard: React.FC<ComplaintCardProps> = ({
             <MapPin className="w-4 h-4" />
             {safeCategory}
           </span>
-          {/* Attachments */}
-          {complaint.attachments && complaint.attachments.length > 0 && (
+          
+          {/* Attachments/Documents */}
+          {(complaint.attachments && complaint.attachments.length > 0 || complaint.attachmentCount) && (
             <span className="flex items-center gap-1.5">
               <FileImage className="w-4 h-4 text-slate-500" />
-              <span className="text-slate-600">{complaint.attachments.length}</span>
+              <span className="text-slate-600">{complaint.attachmentCount || complaint.attachments?.length || 0} doc(s)</span>
             </span>
           )}
         </div>

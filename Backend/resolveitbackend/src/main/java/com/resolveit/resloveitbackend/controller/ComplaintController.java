@@ -34,10 +34,6 @@ public class ComplaintController {
         try { Files.createDirectories(uploadRoot); } catch (IOException ignored) {}
     }
 
-    /**
-     * ✅ Citizen submits a new complaint.
-     * Example POST: /api/complaints/submit?email=citizen@example.com
-     */
     @PostMapping("/submit")
     public ComplaintDto submitComplaint(
             @RequestBody ComplaintRequest request,
@@ -51,9 +47,6 @@ public class ComplaintController {
         return complaintService.submitComplaint(complaint, email);
     }
 
-    /**
-     * Submit complaint with attachments (multipart)
-     */
     @PostMapping(value = "/submit-with-files", consumes = {"multipart/form-data"})
     public ResponseEntity<?> submitWithFiles(
             @RequestPart("data") ComplaintRequest request,

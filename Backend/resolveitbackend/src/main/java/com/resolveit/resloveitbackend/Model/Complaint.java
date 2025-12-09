@@ -8,6 +8,10 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * Government Grievance Entity
+ * Tracks public complaints/grievances with audit trail and department assignment
+ */
 @Entity
 @Table(name = "complaints")
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
@@ -17,7 +21,13 @@ public class Complaint {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // ✅ NEW: Government reference number format (GRV-YYYYMMDD-XXXXX)
+    @Column(name = "reference_number", unique = true, nullable = false)
+    private String referenceNumber;
+
     private String title;
+    @Lob
+    @Column(columnDefinition = "TEXT")
     private String description;
     private String category;
 
@@ -35,9 +45,24 @@ public class Complaint {
     @Column(name = "assigned_to")
     private String assignedTo;
 
+    // ✅ NEW: Department of assigned officer for tracking
+    @Column(name = "assigned_department")
+    private String assignedDepartment;
+
     private boolean isAnonymous;
     private String submittedBy;
+    
+    // ✅ UPDATED: Initial submission timestamp
+    @Column(name = "submitted_at", nullable = false)
     private LocalDateTime submittedAt = LocalDateTime.now();
+
+    // ✅ NEW: Audit tracking - last modification
+    @Column(name = "last_updated_at")
+    private LocalDateTime lastUpdatedAt;
+
+    // ✅ NEW: Audit tracking - who modified
+    @Column(name = "last_updated_by")
+    private String lastUpdatedBy;
 
     // Citizen who submitted
     @ManyToOne(fetch = FetchType.LAZY)
@@ -55,6 +80,9 @@ public class Complaint {
     // === Getters & Setters ===
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
+    public String getReferenceNumber() { return referenceNumber; }
+    public void setReferenceNumber(String referenceNumber) { this.referenceNumber = referenceNumber; }
 
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
@@ -74,6 +102,9 @@ public class Complaint {
     public String getAssignedTo() { return assignedTo; }
     public void setAssignedTo(String assignedTo) { this.assignedTo = assignedTo; }
 
+    public String getAssignedDepartment() { return assignedDepartment; }
+    public void setAssignedDepartment(String assignedDepartment) { this.assignedDepartment = assignedDepartment; }
+
     public boolean getIsAnonymous() { return isAnonymous; }
     public void setIsAnonymous(boolean isAnonymous) { this.isAnonymous = isAnonymous; }
 
@@ -82,6 +113,12 @@ public class Complaint {
 
     public LocalDateTime getSubmittedAt() { return submittedAt; }
     public void setSubmittedAt(LocalDateTime submittedAt) { this.submittedAt = submittedAt; }
+
+    public LocalDateTime getLastUpdatedAt() { return lastUpdatedAt; }
+    public void setLastUpdatedAt(LocalDateTime lastUpdatedAt) { this.lastUpdatedAt = lastUpdatedAt; }
+
+    public String getLastUpdatedBy() { return lastUpdatedBy; }
+    public void setLastUpdatedBy(String lastUpdatedBy) { this.lastUpdatedBy = lastUpdatedBy; }
 
     public User getUser() { return user; }
     public void setUser(User user) { this.user = user; }

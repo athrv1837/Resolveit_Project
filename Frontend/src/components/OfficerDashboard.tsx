@@ -165,8 +165,8 @@ export const OfficerDashboard: React.FC = () => {
     <RoleGuard allowed={['officer', 'admin']}>
       <div className="flex flex-col min-h-screen bg-gradient-to-br from-slate-50 via-cyan-50 to-slate-50">
         <Header 
-          title="Officer Portal" 
-          subtitle={`Welcome back, ${user.name || user.email.split('@')[0]}`} 
+          title="Officer Portal - Grievance Resolution" 
+          subtitle={`${user.name || user.email.split('@')[0]} | Assigned Cases`} 
           icon={<Shield className="w-7 h-7 text-white" />} 
         />
 

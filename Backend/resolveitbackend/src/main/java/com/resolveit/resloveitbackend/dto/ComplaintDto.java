@@ -6,22 +6,33 @@ import com.resolveit.resloveitbackend.enums.ComplaintStatus;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * Government Grievance Data Transfer Object
+ * Contains complaint details with audit and department tracking
+ */
 public class ComplaintDto {
     private Long id;
+    private String referenceNumber;        // ✅ NEW: Government reference number
     private String title;
     private String description;
     private String category;
     private ComplaintStatus status;
     private ComplaintPriority priority;
     private String assignedTo;
+    private String assignedDepartment;        // ✅ NEW: Department of assigned officer
     private boolean isAnonymous;
     private String submittedBy;
     private LocalDateTime submittedAt;
+    private LocalDateTime lastUpdatedAt;       // ✅ NEW: Audit tracking
+    private String lastUpdatedBy;              // ✅ NEW: Who made the last change
     private List<String> attachments;
+    private int attachmentCount;               // ✅ NEW: For summary view
 
     // Getters and setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+    public String getReferenceNumber() { return referenceNumber; }
+    public void setReferenceNumber(String referenceNumber) { this.referenceNumber = referenceNumber; }
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
     public String getDescription() { return description; }
@@ -34,12 +45,20 @@ public class ComplaintDto {
     public void setPriority(ComplaintPriority priority) { this.priority = priority; }
     public String getAssignedTo() { return assignedTo; }
     public void setAssignedTo(String assignedTo) { this.assignedTo = assignedTo; }
+    public String getAssignedDepartment() { return assignedDepartment; }
+    public void setAssignedDepartment(String assignedDepartment) { this.assignedDepartment = assignedDepartment; }
     public boolean getIsAnonymous() { return isAnonymous; }
     public void setIsAnonymous(boolean isAnonymous) { this.isAnonymous = isAnonymous; }
     public String getSubmittedBy() { return submittedBy; }
     public void setSubmittedBy(String submittedBy) { this.submittedBy = submittedBy; }
     public LocalDateTime getSubmittedAt() { return submittedAt; }
     public void setSubmittedAt(LocalDateTime submittedAt) { this.submittedAt = submittedAt; }
+    public LocalDateTime getLastUpdatedAt() { return lastUpdatedAt; }
+    public void setLastUpdatedAt(LocalDateTime lastUpdatedAt) { this.lastUpdatedAt = lastUpdatedAt; }
+    public String getLastUpdatedBy() { return lastUpdatedBy; }
+    public void setLastUpdatedBy(String lastUpdatedBy) { this.lastUpdatedBy = lastUpdatedBy; }
     public List<String> getAttachments() { return attachments; }
     public void setAttachments(List<String> attachments) { this.attachments = attachments; }
+    public int getAttachmentCount() { return attachmentCount; }
+    public void setAttachmentCount(int attachmentCount) { this.attachmentCount = attachmentCount; }
 }

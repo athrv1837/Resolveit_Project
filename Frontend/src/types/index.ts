@@ -12,9 +12,11 @@ export interface Officer {
   availability?: OfficerAvailability;
 }
 
-export type ComplaintStatus = 'pending' | 'assigned' | 'in-progress' | 'resolved';
+// ✅ UPDATED: Government-aligned complaint statuses
+export type ComplaintStatus = 'pending' | 'assigned' | 'under-review' | 'in-progress' | 'escalated' | 'resolved' | 'closed';
 
-export type ComplaintPriority = 'low' | 'medium' | 'high';
+// ✅ UPDATED: Government-aligned priority levels with response times
+export type ComplaintPriority = 'low' | 'medium' | 'high' | 'urgent';
 
 export interface User {
   email: string;
@@ -48,15 +50,20 @@ export interface Feedback {
 
 export interface Complaint {
   id: number;
+  referenceNumber?: string;              // ✅ NEW: Government reference (GRV-XXXXX)
   title: string;
   description: string;
   category: string;
   status: ComplaintStatus;
   priority: ComplaintPriority;
   assignedTo?: string;
+  assignedDepartment?: string;        // ✅ NEW: Department of assigned officer
   isAnonymous: boolean;
   submittedBy: string;
   submittedAt: string;
+  lastUpdatedAt?: string;             // ✅ NEW: Audit tracking
+  lastUpdatedBy?: string;             // ✅ NEW: Audit tracking
+  attachmentCount?: number;           // ✅ NEW: For summary display
   attachments?: string[];
 
   // ✅ Fixed: citizenName now exists
