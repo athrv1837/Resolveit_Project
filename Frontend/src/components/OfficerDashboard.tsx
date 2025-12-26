@@ -11,11 +11,12 @@ import { StatCard } from './shared/StatCard';
 import { ComplaintCard } from './shared/ComplaintCard';
 import { Complaint, ComplaintStatus } from '../types';
 import RoleGuard from './RoleGuard';
+import api from '../lib/api';
 
-const API_BASE = "http://localhost:8080/api";
+
 
 export const OfficerDashboard: React.FC = () => {
-  const { user, getAuthHeaders } = useAuth();
+  const { user, getAuthHeaders, token } = useAuth();
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
   const [loading, setLoading] = useState(true);
@@ -23,6 +24,9 @@ export const OfficerDashboard: React.FC = () => {
   const [noteContent, setNoteContent] = useState('');
   const [showReplyModal, setShowReplyModal] = useState(false);
   const [showNoteModal, setShowNoteModal] = useState(false);
+  const [showEscalateModal, setShowEscalateModal] = useState(false);
+  const [escalationReason, setEscalationReason] = useState('');
+  const [escalationLevel, setEscalationLevel] = useState(1);
 
   // Fetch assigned complaints
   useEffect(() => {
@@ -34,11 +38,7 @@ export const OfficerDashboard: React.FC = () => {
   const fetchAssignedComplaints = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/officer/complaints?email=${user?.email}`, {
-        headers: getAuthHeaders(),
-      });
-      if (!res.ok) throw new Error("Failed to fetch");
-      const data = await res.json();
+      const data = await api.getOfficerComplaints(user?.email || '', token ?? undefined);
 
       const mapped: Complaint[] = data.map((c: any) => {
         const rawPriority = c.priority?.toString().trim();
@@ -72,13 +72,8 @@ export const OfficerDashboard: React.FC = () => {
   // Update status
   const updateStatus = async (id: number, status: ComplaintStatus) => {
     try {
-      const res = await fetch(`${API_BASE}/complaints/${id}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        body: JSON.stringify({ status }),
-      });
-      if (!res.ok) throw new Error();
-
+      console.log("Updating status for complaint", id, "to", status);
+      await api.updateComplaintStatus(id, status,user?.name,token ?? undefined);
       setComplaints(prev => prev.map(c => c.id === id ? { ...c, status } : c));
       if (selectedComplaint?.id === id) {
         setSelectedComplaint({ ...selectedComplaint, status });
@@ -93,17 +88,7 @@ export const OfficerDashboard: React.FC = () => {
     if (!selectedComplaint || !replyContent.trim()) return;
 
     try {
-      const res = await fetch(`${API_BASE}/complaints/${selectedComplaint.id}/replies`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        body: JSON.stringify({
-          content: replyContent,
-          isAdminReply: false,
-        }),
-      });
-      if (!res.ok) throw new Error();
-
-      const newReply = await res.json();
+      const newReply = await api.addReply(selectedComplaint.id, replyContent, false, token ?? undefined);
       const updatedComplaint = {
         ...selectedComplaint,
         replies: [...(selectedComplaint.replies || []), newReply]
@@ -123,18 +108,7 @@ export const OfficerDashboard: React.FC = () => {
     if (!selectedComplaint || !noteContent.trim()) return;
 
     try {
-      const res = await fetch(`${API_BASE}/complaints/${selectedComplaint.id}/notes`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        body: JSON.stringify({
-          content: noteContent,
-          createdBy: user?.email || 'officer',
-          isPrivate: true,
-        }),
-      });
-      if (!res.ok) throw new Error();
-
-      const newNote = await res.json();
+      const newNote = await api.addNote(selectedComplaint.id, noteContent, true, token ?? undefined);
       const updatedComplaint = {
         ...selectedComplaint,
         notes: [...(selectedComplaint.notes || []), newNote]
@@ -152,7 +126,7 @@ export const OfficerDashboard: React.FC = () => {
   const stats = {
     total: complaints.length,
     assigned: complaints.filter(c => c.status === 'assigned').length,
-    inProgress: complaints.filter(c => c.status === 'in-progress').length,
+    inProgress: complaints.filter(c => c.status === 'in_progress').length,
     resolved: complaints.filter(c => c.status === 'resolved').length,
     highPriority: complaints.filter(c => c.priority.toLowerCase() === 'high').length, // ← NOW CORRECT!
   };
@@ -178,6 +152,12 @@ export const OfficerDashboard: React.FC = () => {
           <StatCard label="In Progress" value={stats.inProgress} icon={<TrendingUp className="w-6 h-6" />} color="cyan" />
           <StatCard label="Resolved" value={stats.resolved} icon={<CheckCircle2 className="w-6 h-6" />} color="green" />
           <StatCard label="High Priority" value={stats.highPriority} icon={<AlertTriangle className="w-6 h-6" />} color="red" />
+        </div>
+        {/* Priority breakdown */}
+        <div className="grid grid-cols-3 gap-4 mb-8">
+          <StatCard label="Low" value={complaints.filter(c => c.priority === 'low').length} icon={<FileText className="w-5 h-5" />} color="green" />
+          <StatCard label="Medium" value={complaints.filter(c => c.priority === 'medium').length} icon={<FileText className="w-5 h-5" />} color="amber" />
+          <StatCard label="High/Urgent" value={complaints.filter(c => c.priority === 'high' || c.priority === 'urgent').length} icon={<FileText className="w-5 h-5" />} color="red" />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -288,7 +268,7 @@ export const OfficerDashboard: React.FC = () => {
                     className="input-field w-full font-medium"
                   >
                     <option value="assigned">Assigned</option>
-                    <option value="in-progress">In Progress</option>
+                    <option value="in_progress">In Progress</option>
                     <option value="resolved">Resolved</option>
                   </select>
                 </div>
@@ -308,6 +288,13 @@ export const OfficerDashboard: React.FC = () => {
                   >
                     <NoteIcon className="w-4 h-4" />
                     Note
+                  </button>
+                  <button
+                    onClick={() => setShowEscalateModal(true)}
+                    className="btn-ghost flex items-center justify-center gap-2 py-3 text-sm font-medium"
+                  >
+                    <AlertTriangle className="w-4 h-4 text-red-500" />
+                    Escalate
                   </button>
                 </div>
 
@@ -386,6 +373,48 @@ export const OfficerDashboard: React.FC = () => {
               >
                 Cancel
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Escalation Modal */}
+      {showEscalateModal && selectedComplaint && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="card p-8 max-w-2xl w-full animate-slide-in-up">
+            <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
+              <AlertTriangle className="w-7 h-7 text-red-600" />
+              Escalate Complaint #{selectedComplaint.id}
+            </h3>
+            <div className="grid gap-4">
+              <div>
+                <label className="text-sm font-semibold">Escalation Level</label>
+                <input type="number" min={1} value={escalationLevel} onChange={e => setEscalationLevel(Number(e.target.value))} className="input-field mt-2" />
+              </div>
+              <div>
+                <label className="text-sm font-semibold">Reason</label>
+                <textarea value={escalationReason} onChange={e => setEscalationReason(e.target.value)} className="input-field mt-2" rows={4} />
+              </div>
+            </div>
+            <div className="flex gap-4 mt-6">
+              <button onClick={async () => {
+                try {
+                  await api.escalateComplaint(selectedComplaint.id, escalationLevel, escalationReason, user?.email, token);
+                  alert('Escalation submitted');
+                  // Optimistic update
+                  setComplaints(prev => prev.map(c => c.id === selectedComplaint.id ? { ...c, escalated: true, escalationLevel, escalationReason } : c));
+                  setSelectedComplaint(prev => prev ? { ...prev, escalated: true, escalationLevel, escalationReason } : prev);
+                  setShowEscalateModal(false);
+                  setEscalationReason('');
+                  setEscalationLevel(1);
+                  // Trigger analytics refresh (best-effort)
+                  try { await api.analyticsOverview(token); } catch (err) { /* ignore */ }
+                } catch (err) {
+                  console.error(err);
+                  alert('Failed to escalate.');
+                }
+              }} className="btn-primary flex-1 py-3">Escalate</button>
+              <button onClick={() => setShowEscalateModal(false)} className="btn-ghost flex-1 py-3">Cancel</button>
             </div>
           </div>
         </div>

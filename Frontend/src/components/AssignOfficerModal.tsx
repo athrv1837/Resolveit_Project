@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { X, UserCheck, Loader2, CheckCircle2, AlertCircle, ChevronDown } from "lucide-react";
+import api from '../lib/api';
 
 const API_BASE = "http://localhost:8080/api";
 
@@ -10,7 +11,7 @@ interface AssignOfficerModalProps {
 }
 
 export const AssignOfficerModal: React.FC<AssignOfficerModalProps> = ({ complaintId, onClose }) => {
-  const { getAuthHeaders } = useAuth();
+  const { getAuthHeaders, token } = useAuth();
   const [officers, setOfficers] = useState<any[]>([]);
   const [selectedOfficer, setSelectedOfficer] = useState('');
   const [loading, setLoading] = useState(true);
@@ -23,10 +24,8 @@ export const AssignOfficerModal: React.FC<AssignOfficerModalProps> = ({ complain
 
   const fetchOfficers = async () => {
     try {
-      const res = await fetch(`${API_BASE}/officers`, { headers: getAuthHeaders() });
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-      setOfficers(data);
+      const data = await api.getOfficers(token ?? undefined);
+      setOfficers(Array.isArray(data) ? data : []);
     } catch (err) {
       alert("Failed to load officers");
     } finally {
@@ -39,13 +38,7 @@ export const AssignOfficerModal: React.FC<AssignOfficerModalProps> = ({ complain
     setAssigning(true);
 
     try {
-      const res = await fetch(`${API_BASE}/admin/complaints/${complaintId}/assign`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        body: JSON.stringify({ officerEmail: selectedOfficer, status: "assigned" }),
-      });
-
-      if (!res.ok) throw new Error();
+      await api.assignOfficer(complaintId, selectedOfficer, token ?? undefined);
       setSuccess(true);
       setTimeout(() => {
         onClose();

@@ -64,6 +64,15 @@ public class Complaint {
     @Column(name = "last_updated_by")
     private String lastUpdatedBy;
 
+    // ✅ NEW: Escalation tracking
+    private boolean escalated = false;
+    @Column(name = "escalation_level")
+    private Integer escalationLevel = 0; // use wrapper to allow nulls from DB
+    @Column(name = "escalation_reason")
+    private String escalationReason;
+    @Column(name = "escalated_at")
+    private LocalDateTime escalatedAt;
+
     // Citizen who submitted
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
@@ -119,6 +128,19 @@ public class Complaint {
 
     public String getLastUpdatedBy() { return lastUpdatedBy; }
     public void setLastUpdatedBy(String lastUpdatedBy) { this.lastUpdatedBy = lastUpdatedBy; }
+
+
+    public boolean isEscalated() { return escalated; }
+    public void setEscalated(boolean escalated) { this.escalated = escalated; }
+
+    public Integer getEscalationLevel() { return escalationLevel; }
+    public void setEscalationLevel(Integer escalationLevel) { this.escalationLevel = escalationLevel; }
+
+    public String getEscalationReason() { return escalationReason; }
+    public void setEscalationReason(String escalationReason) { this.escalationReason = escalationReason; }
+
+    public LocalDateTime getEscalatedAt() { return escalatedAt; }
+    public void setEscalatedAt(LocalDateTime escalatedAt) { this.escalatedAt = escalatedAt; }
 
     public User getUser() { return user; }
     public void setUser(User user) { this.user = user; }

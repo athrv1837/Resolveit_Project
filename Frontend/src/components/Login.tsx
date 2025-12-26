@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { UserRole } from "../types";
 import { LogIn, Mail, Lock, ArrowRight } from "lucide-react";
+import ForgotPassword from "./ForgotPassword";
 
 interface LoginProps {
   onSwitchToRegister: () => void;
@@ -126,6 +127,9 @@ export const Login: React.FC<LoginProps> = ({ onSwitchToRegister }) => {
                   required
                 />
               </div>
+                        <div className="mt-2 text-right">
+                          <ForgotPassword />
+                        </div>
             </div>
 
             {/* Error Handling */}

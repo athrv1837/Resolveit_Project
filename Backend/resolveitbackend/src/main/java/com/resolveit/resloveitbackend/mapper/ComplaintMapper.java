@@ -31,6 +31,11 @@ public class ComplaintMapper {
         if (c.getAttachments() != null) {
             d.setAttachmentCount(c.getAttachments().size()); // ✅ NEW
         }
+        // Escalation
+        d.setEscalated(c.isEscalated());
+        d.setEscalationLevel(c.getEscalationLevel());
+        d.setEscalationReason(c.getEscalationReason());
+        d.setEscalatedAt(c.getEscalatedAt());
         return d;
     }
 

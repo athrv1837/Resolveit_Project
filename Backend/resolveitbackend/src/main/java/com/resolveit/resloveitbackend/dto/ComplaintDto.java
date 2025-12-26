@@ -27,6 +27,11 @@ public class ComplaintDto {
     private String lastUpdatedBy;              // ✅ NEW: Who made the last change
     private List<String> attachments;
     private int attachmentCount;               // ✅ NEW: For summary view
+    // Escalation info
+    private boolean escalated;
+    private Integer escalationLevel;
+    private String escalationReason;
+    private LocalDateTime escalatedAt;
 
     // Getters and setters
     public Long getId() { return id; }
@@ -61,4 +66,12 @@ public class ComplaintDto {
     public void setAttachments(List<String> attachments) { this.attachments = attachments; }
     public int getAttachmentCount() { return attachmentCount; }
     public void setAttachmentCount(int attachmentCount) { this.attachmentCount = attachmentCount; }
+    public boolean isEscalated() { return escalated; }
+    public void setEscalated(boolean escalated) { this.escalated = escalated; }
+    public Integer getEscalationLevel() { return escalationLevel; }
+    public void setEscalationLevel(Integer escalationLevel) { this.escalationLevel = escalationLevel; }
+    public String getEscalationReason() { return escalationReason; }
+    public void setEscalationReason(String escalationReason) { this.escalationReason = escalationReason; }
+    public LocalDateTime getEscalatedAt() { return escalatedAt; }
+    public void setEscalatedAt(LocalDateTime escalatedAt) { this.escalatedAt = escalatedAt; }
 }

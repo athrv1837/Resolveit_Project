@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { UserRole } from "../types";
 import { UserPlus, Mail, Lock, User, ArrowRight, Upload } from "lucide-react";
+import ForgotPassword from "./ForgotPassword";
 
 interface RegisterProps {
   onSwitchToLogin: () => void;
@@ -233,6 +234,9 @@ export const Register: React.FC<RegisterProps> = ({ onSwitchToLogin }) => {
                 <span>{loading ? "Creating account..." : "Create Account"}</span>
                 {!loading && <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />}
               </button>
+              <div className="text-center mt-3">
+                <ForgotPassword />
+              </div>
             </form>
           )}
 

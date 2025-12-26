@@ -23,6 +23,9 @@ public class AdminController {
     private PendingOfficerRepository pendingRepo;
 
     @Autowired
+    private com.resolveit.resloveitbackend.service.EmailService emailService;
+
+    @Autowired
     private OfficerRepository officerRepo;
 
     @Autowired
@@ -48,12 +51,18 @@ public class AdminController {
 
         officerRepo.save(newOfficer);
         pendingRepo.delete(pending);
+        try { emailService.sendSimpleMessage(newOfficer.getEmail(), "Officer Approved", "Your officer account has been approved."); } catch (Exception ignored) {}
         return ResponseEntity.ok("Officer approved successfully.");
     }
 
     // === EXISTING: Reject Officer ===
     @PostMapping("/reject/{id}")
     public ResponseEntity<String> rejectOfficer(@PathVariable Long id) {
+        // notify if email exists
+        PendingOfficer p = pendingRepo.findById(id).orElse(null);
+        if (p != null) {
+            try { emailService.sendSimpleMessage(p.getEmail(), "Officer Registration Rejected", "Your officer registration was rejected by admin."); } catch (Exception ignored) {}
+        }
         pendingRepo.deleteById(id);
         return ResponseEntity.ok("Officer request rejected.");
     }
@@ -86,6 +95,12 @@ public class AdminController {
         complaint.setStatus(ComplaintStatus.ASSIGNED); // Auto-set to ASSIGNED
         complaintRepository.save(complaint);
 
+        // Notify officer and submitter
+        try {
+            emailService.sendSimpleMessage(officerEmail, "New Assignment: " + complaint.getReferenceNumber(), "You have been assigned complaint " + complaint.getReferenceNumber());
+            if (complaint.getSubmittedBy() != null) emailService.sendStatusUpdateEmail(complaint.getSubmittedBy(), complaint.getReferenceNumber(), complaint.getStatus().name());
+        } catch (Exception ignored) {}
+
         return ResponseEntity.ok("Officer " + officerOpt.get().getName() + " assigned successfully.");
     }
 
@@ -99,13 +114,36 @@ public class AdminController {
         long highPriority = complaintRepository.findAll().stream().filter(c -> c.getPriority().name().equals("HIGH")).count();
         long officers = officerRepository.count();
 
-        return ResponseEntity.ok(Map.of(
-                "totalComplaints", totalComplaints,
-                "pending", pending,
-                "assigned", assigned,
-                "resolved", resolved,
-                "highPriority", highPriority,
-                "officers", officers
-        ));
+        // Workload per officer
+        java.util.Map<String, Integer> workload = new java.util.HashMap<>();
+        officerRepository.findAll().forEach(o -> workload.put(o.getEmail(), complaintRepository.findByAssignedTo(o.getEmail()).size()));
+
+        // Priority breakdown
+        java.util.Map<String, Long> priorityBreakdown = new java.util.HashMap<>();
+        priorityBreakdown.put("low", complaintRepository.findAll().stream().filter(c -> c.getPriority().name().equalsIgnoreCase("LOW")).count());
+        priorityBreakdown.put("medium", complaintRepository.findAll().stream().filter(c -> c.getPriority().name().equalsIgnoreCase("MEDIUM")).count());
+        priorityBreakdown.put("high", complaintRepository.findAll().stream().filter(c -> c.getPriority().name().equalsIgnoreCase("HIGH")).count());
+        priorityBreakdown.put("urgent", complaintRepository.findAll().stream().filter(c -> c.getPriority().name().equalsIgnoreCase("URGENT")).count());
+
+        // Status breakdown
+        java.util.Map<String, Long> statusBreakdown = new java.util.HashMap<>();
+        statusBreakdown.put("pending", pending);
+        statusBreakdown.put("assigned", assigned);
+        statusBreakdown.put("resolved", resolved);
+        // include other statuses as computed
+        statusBreakdown.put("other", totalComplaints - (pending + assigned + resolved));
+
+        java.util.Map<String, Object> out = new java.util.HashMap<>();
+        out.put("totalComplaints", totalComplaints);
+        out.put("pending", pending);
+        out.put("assigned", assigned);
+        out.put("resolved", resolved);
+        out.put("highPriority", highPriority);
+        out.put("officers", officers);
+        out.put("workload", workload);
+        out.put("priorityBreakdown", priorityBreakdown);
+        out.put("statusBreakdown", statusBreakdown);
+
+        return ResponseEntity.ok(out);
     }
 }

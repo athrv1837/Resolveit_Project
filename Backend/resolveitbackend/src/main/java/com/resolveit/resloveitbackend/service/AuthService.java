@@ -6,4 +6,6 @@ import com.resolveit.resloveitbackend.dto.RegisterRequest;
 public interface AuthService {
     AuthResponse login(String email, String rawPassword);
     AuthResponse register(RegisterRequest req);
+    void requestPasswordReset(String email);
+    void resetPassword(String token, String newPassword);
 }

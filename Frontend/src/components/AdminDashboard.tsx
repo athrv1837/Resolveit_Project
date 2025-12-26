@@ -10,7 +10,9 @@ import { Footer } from "./shared/Footer";
 import { StatCard } from "./shared/StatCard";
 import { ComplaintCard } from "./shared/ComplaintCard";
 import { Complaint, ComplaintStatus, ComplaintPriority } from "../types";
-import api from '../lib/api';
+import api, { API_BASE } from '../lib/api';
+import { ChartContainer, ChartTooltip } from './ui/chart';
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 import RoleGuard from './RoleGuard';
 
@@ -32,6 +34,9 @@ export const AdminDashboard: React.FC = () => {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [assigning, setAssigning] = useState(false);
   const [selectedOfficerEmail, setSelectedOfficerEmail] = useState("");
+  const [showEscalateModal, setShowEscalateModal] = useState(false);
+  const [escalationReason, setEscalationReason] = useState('');
+  const [escalationLevel, setEscalationLevel] = useState(1);
 
   // Reply & Note Modals
   const [showReplyModal, setShowReplyModal] = useState(false);
@@ -41,11 +46,22 @@ export const AdminDashboard: React.FC = () => {
 
   // Officers list
   const [officers, setOfficers] = useState<{ id: number; email: string; name: string; department?: string }[]>([]);
+  const [analytics, setAnalytics] = useState<any | null>(null);
 
   // Fetch complaints
   useEffect(() => {
     fetchComplaints();
+    fetchAnalytics();
   }, [token]);
+
+  const fetchAnalytics = async () => {
+    try {
+      const data = await api.analyticsOverview(token ?? undefined);
+      setAnalytics(data);
+    } catch (err) {
+      console.warn('Failed to fetch analytics overview:', err);
+    }
+  };
 
   const fetchComplaints = async () => {
     setLoading(true);
@@ -104,11 +120,7 @@ export const AdminDashboard: React.FC = () => {
   const handleApproveOfficer = async (id: number) => {
     if (!confirm("Approve officer?")) return;
     try {
-      const res = await fetch(`http://localhost:8080/api/admin/approve/${id}`, { 
-        method: "POST", 
-        headers: { ...getAuthHeaders() },
-      });
-      if (!res.ok) throw new Error();
+      await api.approveOfficer(id, token ?? undefined);
       setPendingOfficerRequests(prev => prev.filter(r => r.id !== id));
       alert("Officer approved!");
     } catch {
@@ -119,11 +131,7 @@ export const AdminDashboard: React.FC = () => {
   const handleRejectOfficer = async (id: number) => {
     if (!confirm("Reject officer?")) return;
     try {
-      const res = await fetch(`http://localhost:8080/api/admin/reject/${id}`, { 
-        method: "POST", 
-        headers: { ...getAuthHeaders() },
-      });
-      if (!res.ok) throw new Error();
+      await api.rejectOfficer(id, token ?? undefined);
       setPendingOfficerRequests(prev => prev.filter(r => r.id !== id));
       alert("Officer rejected.");
     } catch {
@@ -142,6 +150,8 @@ export const AdminDashboard: React.FC = () => {
       setSelectedComplaint(updatedComplaint);
       setShowAssignModal(false);
       setSelectedOfficerEmail("");
+        // Refresh analytics after assignment
+        fetchAnalytics();
       alert("Officer assigned!");
     } catch (err) {
       console.error("Failed to assign:", err);
@@ -154,11 +164,7 @@ export const AdminDashboard: React.FC = () => {
   // Update status/priority
   const updateStatus = async (id: number, status: ComplaintStatus) => {
     try {
-      await fetch(`${API_BASE}/complaints/${id}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        body: JSON.stringify({ status }),
-      });
+      await api.updateComplaintStatus(id, status, token ?? undefined);
       setComplaints(prev => prev.map(c => c.id === id ? { ...c, status } : c));
       if (selectedComplaint?.id === id) setSelectedComplaint(prev => prev ? { ...prev, status } : null);
     } catch { alert("Failed"); }
@@ -166,11 +172,7 @@ export const AdminDashboard: React.FC = () => {
 
   const updatePriority = async (id: number, priority: ComplaintPriority) => {
     try {
-      await fetch(`${API_BASE}/complaints/${id}/priority`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        body: JSON.stringify({ priority }),
-      });
+      await api.updateComplaintPriority(id, priority, token ?? undefined);
       setComplaints(prev => prev.map(c => c.id === id ? { ...c, priority } : c));
       if (selectedComplaint?.id === id) setSelectedComplaint(prev => prev ? { ...prev, priority } : null);
     } catch { alert("Failed"); }
@@ -180,13 +182,7 @@ export const AdminDashboard: React.FC = () => {
   const sendReply = async () => {
     if (!selectedComplaint || !replyContent.trim()) return;
     try {
-      const res = await fetch(`${API_BASE}/complaints/${selectedComplaint.id}/replies`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        body: JSON.stringify({ content: replyContent, isAdminReply: true }),
-      });
-      if (!res.ok) throw new Error();
-      const newReply = await res.json();
+      const newReply = await api.addReply(selectedComplaint.id, replyContent, true, token ?? undefined);
       const updated = { ...selectedComplaint, replies: [...(selectedComplaint.replies || []), newReply] };
       setComplaints(prev => prev.map(c => c.id === selectedComplaint.id ? updated : c));
       setSelectedComplaint(updated);
@@ -199,13 +195,7 @@ export const AdminDashboard: React.FC = () => {
   const addNote = async () => {
     if (!selectedComplaint || !noteContent.trim()) return;
     try {
-      const res = await fetch(`${API_BASE}/complaints/${selectedComplaint.id}/notes`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        body: JSON.stringify({ content: noteContent, isPrivate: true }),
-      });
-      if (!res.ok) throw new Error();
-      const newNote = await res.json();
+      const newNote = await api.addNote(selectedComplaint.id, noteContent, true, token ?? undefined);
       const updated = { ...selectedComplaint, notes: [...(selectedComplaint.notes || []), newNote] };
       setComplaints(prev => prev.map(c => c.id === selectedComplaint.id ? updated : c));
       setSelectedComplaint(updated);
@@ -223,12 +213,45 @@ export const AdminDashboard: React.FC = () => {
   });
 
   const stats = {
-    total: complaints.length,
-    pending: complaints.filter(c => c.status === "pending").length,
-    inProgress: complaints.filter(c => ["assigned", "in-progress"].includes(c.status)).length,
-    resolved: complaints.filter(c => c.status === "resolved").length,
-    highPriority: complaints.filter(c => c.priority === "high").length,
+    total: analytics?.totalComplaints ?? complaints.length,
+    pending: analytics?.pending ?? complaints.filter(c => c.status === "pending").length,
+    inProgress: analytics?.assigned ?? complaints.filter(c => ["assigned", "in-progress"].includes(c.status)).length,
+    resolved: analytics?.resolved ?? complaints.filter(c => c.status === "resolved").length,
+    highPriority: analytics?.highPriority ?? complaints.filter(c => c.priority === "high").length,
   };
+
+  // Chart data
+  // Use analytics data when available; otherwise compute from complaints
+  const priorityData = analytics?.priorityBreakdown
+    ? [
+        { name: 'Low', value: analytics.priorityBreakdown.low || 0, color: '#10B981' },
+        { name: 'Medium', value: analytics.priorityBreakdown.medium || 0, color: '#F59E0B' },
+        { name: 'High', value: analytics.priorityBreakdown.high || 0, color: '#EF4444' },
+        { name: 'Urgent', value: analytics.priorityBreakdown.urgent || 0, color: '#B91C1C' },
+      ]
+    : [
+        { name: 'Low', value: complaints.filter(c => c.priority === 'low').length, color: '#10B981' },
+        { name: 'Medium', value: complaints.filter(c => c.priority === 'medium').length, color: '#F59E0B' },
+        { name: 'High', value: complaints.filter(c => c.priority === 'high').length, color: '#EF4444' },
+        { name: 'Urgent', value: complaints.filter(c => c.priority === 'urgent').length, color: '#B91C1C' },
+      ];
+
+  const statusData = analytics?.statusBreakdown
+    ? Object.entries(analytics.statusBreakdown).map(([k, v]) => ({ name: k.charAt(0).toUpperCase() + k.slice(1), value: Number(v) }))
+    : [
+        { name: 'Pending', value: complaints.filter(c => c.status === 'pending').length },
+        { name: 'Assigned', value: complaints.filter(c => c.status === 'assigned').length },
+        { name: 'In Progress', value: complaints.filter(c => c.status === 'in_progress').length },
+        { name: 'Resolved', value: complaints.filter(c => c.status === 'resolved').length },
+      ];
+
+  const workloadData = (analytics?.workload
+    ? Object.entries(analytics.workload).map(([email, count]) => ({ email, count }))
+    : officers.map(o => ({ email: o.email, count: complaintRepositoryFallbackCount(complaints, o.email) }))).sort((a: any, b: any) => b.count - a.count);
+
+  function complaintRepositoryFallbackCount(list: any[], email: string) {
+    return list.filter(c => c.assignedTo === email).length;
+  }
 
   return (
     <RoleGuard allowed={['admin']}>
@@ -243,6 +266,66 @@ export const AdminDashboard: React.FC = () => {
           <StatCard label="In Progress" value={stats.inProgress} icon={<TrendingUp />} color="cyan" />
           <StatCard label="Resolved" value={stats.resolved} icon={<CheckCircle2 />} color="green" />
           <StatCard label="High Priority" value={stats.highPriority} icon={<AlertTriangle />} color="red" />
+        </div>
+
+        <div className="flex items-center justify-end mb-6">
+          <button onClick={() => { fetchAnalytics(); fetchComplaints(); }} className="btn-ghost">Refresh Analytics</button>
+        </div>
+
+        {/* Charts: workload larger, priority smaller for compact view */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 items-start">
+          <div className="card p-4 lg:col-span-2">
+            <h3 className="font-bold text-lg mb-3">Officer Workload</h3>
+            <div style={{ height: 360 }} className="rounded-lg overflow-hidden">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={workloadData.slice(0, 12)} layout="vertical" margin={{ left: 8, right: 8 }}>
+                  <XAxis type="number" />
+                  <YAxis dataKey="email" type="category" width={180} />
+                  <Tooltip />
+                  <Bar dataKey="count" fill="#0EA5A4" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="mt-3 text-sm text-slate-500">Showing top officers. Workload is number of assigned complaints.</div>
+          </div>
+
+          <div className="card p-4 lg:col-span-1">
+            <h3 className="font-bold text-lg mb-3">Priority Distribution</h3>
+            <div style={{ height: 160 }} className="flex items-center justify-center">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  {(() => {
+                    const total = priorityData.reduce((s, p) => s + (p.value || 0), 0);
+                    const pieData = total > 0 ? priorityData.filter(p => p.value > 0) : [{ name: 'none', value: 1, color: '#e5e7eb' }];
+                    return (
+                      <Pie data={pieData} dataKey="value" nameKey="name" innerRadius={30} outerRadius={56} label={false} stroke="none">
+                        {pieData.map((entry: any, index: number) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                    );
+                  })()}
+                  <Tooltip formatter={(value: any) => [value, 'Count']} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="mt-3 text-sm text-slate-500">{priorityData.map(p => `${p.name}: ${p.value}`).join(' · ')}</div>
+          </div>
+        </div>
+        {/* Status breakdown - compact */}
+        <div className="card p-4 mb-8">
+          <h3 className="font-bold text-lg mb-3">Status Breakdown</h3>
+          <div style={{ height: 180 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={statusData} margin={{ left: 8, right: 8 }}>
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="value" fill="#2563EB" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="mt-3 text-sm text-slate-500">Counts by current status from analytics.</div>
         </div>
 
         {/* Filters */}
@@ -390,6 +473,9 @@ export const AdminDashboard: React.FC = () => {
                   <button onClick={() => setShowNoteModal(true)} className="btn-secondary py-3">
                     <StickyNote className="w-5 h-5" /> Note
                   </button>
+                  <button onClick={() => setShowEscalateModal(true)} className="btn-ghost py-3">
+                    <AlertTriangle className="w-5 h-5 text-red-500" /> Escalate
+                  </button>
                 </div>
 
                 {/* Replies & Notes */}
@@ -475,6 +561,46 @@ export const AdminDashboard: React.FC = () => {
                 {assigning ? <Loader2 className="w-6 h-6 animate-spin" /> : <UserCheck className="w-6 h-6" />}
                 {assigning ? "Assigning..." : "Assign Officer"}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Escalation Modal */}
+      {showEscalateModal && selectedComplaint && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="card p-8 max-w-2xl w-full animate-slide-in-up">
+            <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
+              <AlertTriangle className="w-7 h-7 text-red-600" />
+              Escalate Complaint #{selectedComplaint.id}
+            </h3>
+            <div className="grid gap-4">
+              <div>
+                <label className="text-sm font-semibold">Escalation Level</label>
+                <input type="number" min={1} value={escalationLevel} onChange={e => setEscalationLevel(Number(e.target.value))} className="input-field mt-2" />
+              </div>
+              <div>
+                <label className="text-sm font-semibold">Reason</label>
+                <textarea value={escalationReason} onChange={e => setEscalationReason(e.target.value)} className="input-field mt-2" rows={4} />
+              </div>
+            </div>
+            <div className="flex gap-4 mt-6">
+              <button onClick={async () => {
+                try {
+                  await api.escalateComplaint(selectedComplaint.id, escalationLevel, escalationReason, null, token ?? undefined);
+                  alert('Escalation submitted');
+                  setComplaints(prev => prev.map(c => c.id === selectedComplaint.id ? { ...c, escalated: true, escalationLevel, escalationReason } : c));
+                  setSelectedComplaint(prev => prev ? { ...prev, escalated: true, escalationLevel, escalationReason } : prev);
+                  setShowEscalateModal(false);
+                  setEscalationReason('');
+                  setEscalationLevel(1);
+                  fetchAnalytics();
+                } catch (err) {
+                  console.error(err);
+                  alert('Failed to escalate.');
+                }
+              }} className="btn-primary flex-1 py-3">Escalate</button>
+              <button onClick={() => setShowEscalateModal(false)} className="btn-ghost flex-1 py-3">Cancel</button>
             </div>
           </div>
         </div>

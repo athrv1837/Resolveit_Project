@@ -40,7 +40,12 @@ export const ComplaintProvider: React.FC<{ children: ReactNode }> = ({ children 
         // officers may want all complaints too
         data = await api.getAllComplaints(token ?? undefined);
       } else {
-        data = await api.getUserComplaints(user?.email ?? '', token ?? undefined);
+        // if no authenticated user/email present, skip fetching to avoid 403 from security
+        if (!user?.email) {
+          setComplaints([]);
+          return;
+        }
+        data = await api.getUserComplaints(user.email, token ?? undefined);
       }
       setComplaints(Array.isArray(data) ? data : []);
     } catch (err) {

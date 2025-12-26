@@ -11,26 +11,43 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
+import java.time.LocalDateTime;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.transaction.annotation.Transactional;
+import java.util.UUID;
+
+import com.resolveit.resloveitbackend.Model.PasswordResetToken;
+import com.resolveit.resloveitbackend.repository.PasswordResetTokenRepository;
+import com.resolveit.resloveitbackend.service.EmailService;
 
 @Service
 public class AuthServiceImpl implements AuthService {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthServiceImpl.class);
 
     private final UserRepository userRepository;
     private final OfficerRepository officerRepository;
     private final PendingOfficerRepository pendingOfficerRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final PasswordResetTokenRepository tokenRepository;
+    private final EmailService emailService;
 
     public AuthServiceImpl(UserRepository userRepository,
                            OfficerRepository officerRepository,
                            PendingOfficerRepository pendingOfficerRepository,
                            PasswordEncoder passwordEncoder,
-                           JwtUtil jwtUtil) {
+                           JwtUtil jwtUtil,
+                           PasswordResetTokenRepository tokenRepository,
+                           EmailService emailService) {
         this.userRepository = userRepository;
         this.officerRepository = officerRepository;
         this.pendingOfficerRepository = pendingOfficerRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
+        this.tokenRepository = tokenRepository;
+        this.emailService = emailService;
     }
 
     @Override
@@ -131,6 +148,9 @@ public class AuthServiceImpl implements AuthService {
 
         userRepository.save(newUser);
 
+        // Send welcome email (non-blocking)
+        try { emailService.sendRegistrationEmail(newUser.getEmail(), newUser.getName()); } catch (Exception ignored) {}
+
         String token = jwtUtil.generateToken(newUser.getEmail(), newUser.getRole().name());
         return new AuthResponse(
                 token,
@@ -139,5 +159,54 @@ public class AuthServiceImpl implements AuthService {
                 newUser.getName(),
                 newUser.getRole().name()
         );
+    }
+
+    @Override
+    public void requestPasswordReset(String email) {
+        // Only generate if an account exists
+        boolean exists = userRepository.existsByEmail(email) || officerRepository.existsByEmail(email);
+        if (!exists) return; // silently ignore to avoid leaking accounts
+
+        String token = UUID.randomUUID().toString();
+        PasswordResetToken t = new PasswordResetToken(token, email, LocalDateTime.now().plusHours(1));
+        tokenRepository.save(t);
+        emailService.sendPasswordResetEmail(email, token);
+    }
+
+    @Override
+    @Transactional
+    public void resetPassword(String token, String newPassword) {
+        PasswordResetToken t = tokenRepository.findByToken(token)
+                .orElseThrow(() -> new RuntimeException("Invalid or expired token"));
+
+        if (t.getExpiresAt().isBefore(LocalDateTime.now())) {
+            // remove expired token within transaction
+            tokenRepository.deleteByToken(token);
+            throw new RuntimeException("Token expired");
+        }
+
+        String email = t.getEmail();
+        Optional<User> userOpt = userRepository.findByEmail(email);
+        if (userOpt.isPresent()) {
+            User u = userOpt.get();
+            u.setPassword(passwordEncoder.encode(newPassword));
+            userRepository.save(u);
+            // delete token within same transaction
+            tokenRepository.deleteByToken(token);
+            log.info("Password reset successfully for user {}", email);
+            return;
+        }
+
+        Optional<Officer> officerOpt = officerRepository.findByEmail(email);
+        if (officerOpt.isPresent()) {
+            Officer o = officerOpt.get();
+            o.setPassword(passwordEncoder.encode(newPassword));
+            officerRepository.save(o);
+            tokenRepository.deleteByToken(token);
+            log.info("Password reset successfully for officer {}", email);
+            return;
+        }
+
+        throw new RuntimeException("No account associated with token");
     }
 }

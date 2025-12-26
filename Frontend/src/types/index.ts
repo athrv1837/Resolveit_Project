@@ -12,10 +12,10 @@ export interface Officer {
   availability?: OfficerAvailability;
 }
 
-// ✅ UPDATED: Government-aligned complaint statuses
-export type ComplaintStatus = 'pending' | 'assigned' | 'under-review' | 'in-progress' | 'escalated' | 'resolved' | 'closed';
+//complaint statuses
+export type ComplaintStatus = 'pending' | 'assigned' | 'under-review' | 'in_progress' | 'escalated' | 'resolved' | 'closed';
 
-// ✅ UPDATED: Government-aligned priority levels with response times
+//priority levels with response times
 export type ComplaintPriority = 'low' | 'medium' | 'high' | 'urgent';
 
 export interface User {
@@ -50,23 +50,29 @@ export interface Feedback {
 
 export interface Complaint {
   id: number;
-  referenceNumber?: string;              // ✅ NEW: Government reference (GRV-XXXXX)
+  referenceNumber?: string;              //Government reference (GRV-XXXXX)
   title: string;
   description: string;
   category: string;
   status: ComplaintStatus;
   priority: ComplaintPriority;
   assignedTo?: string;
-  assignedDepartment?: string;        // ✅ NEW: Department of assigned officer
+  assignedDepartment?: string;        //Department of assigned officer
   isAnonymous: boolean;
   submittedBy: string;
   submittedAt: string;
-  lastUpdatedAt?: string;             // ✅ NEW: Audit tracking
-  lastUpdatedBy?: string;             // ✅ NEW: Audit tracking
-  attachmentCount?: number;           // ✅ NEW: For summary display
+  lastUpdatedAt?: string;             // Audit tracking
+  lastUpdatedBy?: string;             // Audit tracking
+  attachmentCount?: number;           // For summary display
   attachments?: string[];
 
-  // ✅ Fixed: citizenName now exists
+  // Escalation info
+  escalated?: boolean;
+  escalationLevel?: number;
+  escalationReason?: string;
+  escalatedAt?: string;
+
+  //citizenName now exists
   citizenName?: string;
 
   // Relations
@@ -83,11 +89,11 @@ export interface Complaint {
   feedback?: Feedback;
 }
 
-// ✅ Fixed: ComplaintCardProps now includes showPriority
+//ComplaintCardProps now includes showPriority
 export interface ComplaintCardProps {
   complaint: Complaint;
   isSelected?: boolean;
   onSelect?: (complaint: Complaint) => void;
   showStatus?: boolean;
-  showPriority?: boolean;  // ← THIS WAS MISSING
+  showPriority?: boolean;
 }

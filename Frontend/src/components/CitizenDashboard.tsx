@@ -158,12 +158,12 @@ export const CitizenDashboard: React.FC = () => {
               icon={<Clock className="w-6 h-6" />}
               color="amber"
             />
-            <StatCard
-              label="Resolved"
-              value={userComplaints.filter((c) => c.status === "resolved").length}
-              icon={<CheckCircle className="w-6 h-6" />}
-              color="green"
-            />
+            {/* Priority breakdown for user's complaints */}
+            <div className="grid grid-cols-3 gap-3">
+              <StatCard label="Low" value={userComplaints.filter((c) => c.priority === 'low').length} icon={<FileText className="w-5 h-5" />} color="green" />
+              <StatCard label="Medium" value={userComplaints.filter((c) => c.priority === 'medium').length} icon={<FileText className="w-5 h-5" />} color="amber" />
+              <StatCard label="High" value={userComplaints.filter((c) => c.priority === 'high' || c.priority === 'urgent').length} icon={<FileText className="w-5 h-5" />} color="red" />
+            </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
