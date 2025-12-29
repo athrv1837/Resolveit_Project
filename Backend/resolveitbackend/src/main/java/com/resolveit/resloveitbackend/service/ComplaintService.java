@@ -14,4 +14,7 @@ public interface ComplaintService {
     ComplaintDto updateComplaintPriority(Long id, String priority, String requestedBy);
     com.resolveit.resloveitbackend.Model.ComplaintNote addNote(Long id, String content, boolean isPrivate, String createdBy);
     com.resolveit.resloveitbackend.Model.ComplaintReply addReply(Long id, String content, boolean isAdminReply, String createdBy);
+
+    // Get a single complaint by id
+    ComplaintDto getComplaintById(Long id);
 }

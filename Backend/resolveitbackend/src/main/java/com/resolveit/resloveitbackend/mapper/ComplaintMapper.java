@@ -6,9 +6,6 @@ import com.resolveit.resloveitbackend.dto.ComplaintDto;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Maps Complaint entity to ComplaintDto with government audit fields
- */
 public class ComplaintMapper {
     public static ComplaintDto toDto(Complaint c) {
         if (c == null) return null;
@@ -31,6 +28,22 @@ public class ComplaintMapper {
         if (c.getAttachments() != null) {
             d.setAttachmentCount(c.getAttachments().size()); // ✅ NEW
         }
+
+        // Replies mapping
+        if (c.getReplies() != null) {
+            java.util.List<com.resolveit.resloveitbackend.dto.ReplyDto> replies = new java.util.ArrayList<>();
+            for (com.resolveit.resloveitbackend.Model.ComplaintReply r : c.getReplies()) {
+                com.resolveit.resloveitbackend.dto.ReplyDto rd = new com.resolveit.resloveitbackend.dto.ReplyDto();
+                rd.setId(r.getId());
+                rd.setContent(r.getContent());
+                rd.setCreatedBy(r.getCreatedBy());
+                rd.setCreatedAt(r.getCreatedAt());
+                rd.setAdminReply(r.isAdminReply());
+                replies.add(rd);
+            }
+            d.setReplies(replies);
+        }
+
         // Escalation
         d.setEscalated(c.isEscalated());
         d.setEscalationLevel(c.getEscalationLevel());

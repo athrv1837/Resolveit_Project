@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
+import { useNavigate } from 'react-router-dom';
+import api from "../lib/api";
 import {
   Plus,
   X,
@@ -19,7 +21,7 @@ import RoleGuard from './RoleGuard';
 const API_BASE = "http://localhost:8080/api";
 
 export const CitizenDashboard: React.FC = () => {
-  const { user, getAuthHeaders } = useAuth(); // ✅ added getAuthHeaders
+  const { user, getAuthHeaders, token } = useAuth(); // ✅ added getAuthHeaders and token
 
   const [complaints, setComplaints] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -28,8 +30,19 @@ export const CitizenDashboard: React.FC = () => {
   const [category, setCategory] = useState("Infrastructure");
   const [attachments, setAttachments] = useState<string[]>([]);
   const [isAnonymous, setIsAnonymous] = useState(false);
-  const [selectedComplaint, setSelectedComplaint] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const userComplaints = Array.isArray(complaints) ? complaints : [];
+
+  // normalize helpers (backend may return UPPERCASE / underscored enums)
+  const normalizeStatus = (s: any) => {
+    if (!s) return 'pending';
+    return String(s).toLowerCase().replace(/_/g, '-');
+  };
+  const normalizePriority = (p: any) => (p ? String(p).toLowerCase() : 'medium');
+
+  const normalizedComplaints = userComplaints.map(c => ({ ...c, status: normalizeStatus(c.status), priority: normalizePriority(c.priority) }));
 
   // ✅ Fetch complaints safely with token
   const fetchComplaints = async () => {
@@ -131,7 +144,7 @@ export const CitizenDashboard: React.FC = () => {
     setAttachments((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const userComplaints = Array.isArray(complaints) ? complaints : [];
+
 
   return (
     <RoleGuard allowed={['citizen', 'admin']}>
@@ -148,21 +161,21 @@ export const CitizenDashboard: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
             <StatCard
               label="Total Complaints"
-              value={userComplaints.length}
+              value={normalizedComplaints.length}
               icon={<FileText className="w-6 h-6" />}
               color="blue"
             />
             <StatCard
               label="Pending"
-              value={userComplaints.filter((c) => c.status === "pending").length}
+              value={normalizedComplaints.filter((c) => c.status === "pending").length}
               icon={<Clock className="w-6 h-6" />}
               color="amber"
             />
             {/* Priority breakdown for user's complaints */}
             <div className="grid grid-cols-3 gap-3">
-              <StatCard label="Low" value={userComplaints.filter((c) => c.priority === 'low').length} icon={<FileText className="w-5 h-5" />} color="green" />
-              <StatCard label="Medium" value={userComplaints.filter((c) => c.priority === 'medium').length} icon={<FileText className="w-5 h-5" />} color="amber" />
-              <StatCard label="High" value={userComplaints.filter((c) => c.priority === 'high' || c.priority === 'urgent').length} icon={<FileText className="w-5 h-5" />} color="red" />
+              <StatCard label="Low" value={normalizedComplaints.filter((c) => c.priority === 'low').length} icon={<FileText className="w-5 h-5" />} color="green" />
+              <StatCard label="Medium" value={normalizedComplaints.filter((c) => c.priority === 'medium').length} icon={<FileText className="w-5 h-5" />} color="amber" />
+              <StatCard label="High" value={normalizedComplaints.filter((c) => c.priority === 'high' || c.priority === 'urgent').length} icon={<FileText className="w-5 h-5" />} color="red" />
             </div>
           </div>
 
@@ -340,15 +353,11 @@ export const CitizenDashboard: React.FC = () => {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {userComplaints.map((complaint: any) => (
+                    {normalizedComplaints.map((complaint: any) => (
                       <ComplaintCard
                         key={complaint.id || Math.random()}
                         complaint={complaint}
-                        isSelected={selectedComplaint === complaint.id}
-                        onSelect={(c) =>
-                         setSelectedComplaint(selectedComplaint === String(c.id) ? null : String(c.id))
-
-                        }
+                        onSelect={() => navigate(`/complaint/${complaint.id}`)}
                         showStatus
                       />
                     ))}

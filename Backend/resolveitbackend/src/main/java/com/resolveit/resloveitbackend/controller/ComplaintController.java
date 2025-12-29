@@ -194,4 +194,15 @@ public class ComplaintController {
             return ResponseEntity.badRequest().body(ex.getMessage());
         }
     }
+
+    // Get a single complaint by id
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getComplaint(@PathVariable Long id) {
+        try {
+            ComplaintDto dto = complaintService.getComplaintById(id);
+            return ResponseEntity.ok(dto);
+        } catch (RuntimeException ex) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+        }
+    }
 }

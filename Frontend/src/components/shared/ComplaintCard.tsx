@@ -10,6 +10,7 @@ interface ComplaintCardProps {
   showStatus?: boolean;
   showPriority?: boolean;  // ← ADDED THIS
   compact?: boolean;
+  children?: React.ReactNode;
 }
 
 const getStatusStyles = (status?: string) => {
@@ -74,6 +75,7 @@ export const ComplaintCard: React.FC<ComplaintCardProps> = ({
   showStatus = true,
   showPriority = false,  // ← Default false
   compact = false,
+  children,
 }) => {
   // Safe defaults
   const safeStatus = complaint?.status || "pending";
@@ -204,6 +206,33 @@ export const ComplaintCard: React.FC<ComplaintCardProps> = ({
           </span>
         )}
       </div>
+
+      {/* Expanded area for selected complaint: children (e.g., reply form) and replies list */}
+      {isSelected && (children || complaint.replies?.length > 0) && (
+        <div className="mt-4 pt-4 border-t border-slate-100">
+          {/* Render passed children (reply form etc) */}
+          {children}
+
+          {/* Replies list (public) */}
+          {complaint.replies && complaint.replies.length > 0 && (
+            <div className="mt-3 space-y-2">
+              {complaint.replies.map((r: any) => (
+                <div key={r.id || r.createdAt || Math.random()} className="p-3 bg-slate-50 rounded">
+                  <div className="text-xs text-slate-500 mb-1 flex items-center justify-between">
+                    <div>
+                      <span className="font-medium">
+                        {r.isAdminReply ? 'Authority' : r.authorName || 'Citizen'}
+                      </span>
+                      <span className="ml-2 text-xs text-slate-400">• {new Date(r.createdAt || r.timestamp || r.created || Date.now()).toLocaleString()}</span>
+                    </div>
+                  </div>
+                  <div className="text-sm text-slate-700">{r.content}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

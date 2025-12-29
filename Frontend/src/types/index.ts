@@ -13,7 +13,7 @@ export interface Officer {
 }
 
 //complaint statuses
-export type ComplaintStatus = 'pending' | 'assigned' | 'under-review' | 'in_progress' | 'escalated' | 'resolved' | 'closed';
+export type ComplaintStatus = 'pending' | 'assigned' | 'under-review' | 'in-progress' | 'escalated' | 'resolved' | 'closed';
 
 //priority levels with response times
 export type ComplaintPriority = 'low' | 'medium' | 'high' | 'urgent';

@@ -201,4 +201,12 @@ public class ComplaintServiceImpl implements ComplaintService {
                 .map(ComplaintMapper::toDto)
                 .collect(Collectors.toList());
     }
+
+    @Transactional(readOnly = true)
+    @Override
+    public ComplaintDto getComplaintById(Long id) {
+        Complaint c = complaintRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Complaint not found"));
+        return ComplaintMapper.toDto(c);
+    }
 }

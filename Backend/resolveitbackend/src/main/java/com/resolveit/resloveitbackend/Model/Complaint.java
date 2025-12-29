@@ -7,11 +7,9 @@ import com.resolveit.resloveitbackend.enums.ComplaintStatus;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.List;
+import com.resolveit.resloveitbackend.Model.ComplaintReply;
 
-/**
- * Government Grievance Entity
- * Tracks public complaints/grievances with audit trail and department assignment
- */
+
 @Entity
 @Table(name = "complaints")
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
@@ -83,6 +81,10 @@ public class Complaint {
     @ElementCollection
     private List<String> attachments;
 
+    // Replies (public conversation between citizen and authority)
+    @OneToMany(mappedBy = "complaint", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ComplaintReply> replies;
+
     // Constructors
     public Complaint() {}
 
@@ -147,4 +149,7 @@ public class Complaint {
 
     public List<String> getAttachments() { return attachments; }
     public void setAttachments(List<String> attachments) { this.attachments = attachments; }
+
+    public java.util.List<ComplaintReply> getReplies() { return replies; }
+    public void setReplies(java.util.List<ComplaintReply> replies) { this.replies = replies; }
 }

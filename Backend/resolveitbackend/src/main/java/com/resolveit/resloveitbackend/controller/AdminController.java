@@ -108,10 +108,15 @@ public class AdminController {
     @GetMapping("/analytics/overview")
     public ResponseEntity<?> getAnalyticsOverview() {
         long totalComplaints = complaintRepository.count();
-        long pending = complaintRepository.findAll().stream().filter(c -> c.getStatus().name().equals("PENDING")).count();
-        long assigned = complaintRepository.findAll().stream().filter(c -> c.getStatus().name().equals("ASSIGNED")).count();
-        long resolved = complaintRepository.findAll().stream().filter(c -> c.getStatus().name().equals("RESOLVED")).count();
-        long highPriority = complaintRepository.findAll().stream().filter(c -> c.getPriority().name().equals("HIGH")).count();
+        java.util.List<Complaint> all = complaintRepository.findAll();
+
+        long pending = all.stream().filter(c -> c.getStatus().name().equals("PENDING")).count();
+        long assigned = all.stream().filter(c -> c.getStatus().name().equals("ASSIGNED")).count();
+        long inProgress = all.stream().filter(c -> c.getStatus().name().equals("IN_PROGRESS") || c.getStatus().name().equals("UNDER_REVIEW")).count();
+        long resolved = all.stream().filter(c -> c.getStatus().name().equals("RESOLVED")).count();
+        long escalated = all.stream().filter(c -> c.getStatus().name().equals("ESCALATED")).count();
+        long closed = all.stream().filter(c -> c.getStatus().name().equals("CLOSED")).count();
+        long highPriority = all.stream().filter(c -> c.getPriority().name().equals("HIGH")).count();
         long officers = officerRepository.count();
 
         // Workload per officer
@@ -120,23 +125,25 @@ public class AdminController {
 
         // Priority breakdown
         java.util.Map<String, Long> priorityBreakdown = new java.util.HashMap<>();
-        priorityBreakdown.put("low", complaintRepository.findAll().stream().filter(c -> c.getPriority().name().equalsIgnoreCase("LOW")).count());
-        priorityBreakdown.put("medium", complaintRepository.findAll().stream().filter(c -> c.getPriority().name().equalsIgnoreCase("MEDIUM")).count());
-        priorityBreakdown.put("high", complaintRepository.findAll().stream().filter(c -> c.getPriority().name().equalsIgnoreCase("HIGH")).count());
-        priorityBreakdown.put("urgent", complaintRepository.findAll().stream().filter(c -> c.getPriority().name().equalsIgnoreCase("URGENT")).count());
+        priorityBreakdown.put("low", all.stream().filter(c -> c.getPriority().name().equalsIgnoreCase("LOW")).count());
+        priorityBreakdown.put("medium", all.stream().filter(c -> c.getPriority().name().equalsIgnoreCase("MEDIUM")).count());
+        priorityBreakdown.put("high", all.stream().filter(c -> c.getPriority().name().equalsIgnoreCase("HIGH")).count());
+        priorityBreakdown.put("urgent", all.stream().filter(c -> c.getPriority().name().equalsIgnoreCase("URGENT")).count());
 
-        // Status breakdown
+        // Status breakdown - use hyphenated keys to match frontend normalization
         java.util.Map<String, Long> statusBreakdown = new java.util.HashMap<>();
         statusBreakdown.put("pending", pending);
         statusBreakdown.put("assigned", assigned);
+        statusBreakdown.put("in-progress", inProgress);
         statusBreakdown.put("resolved", resolved);
-        // include other statuses as computed
-        statusBreakdown.put("other", totalComplaints - (pending + assigned + resolved));
+        statusBreakdown.put("escalated", escalated);
+        statusBreakdown.put("closed", closed);
 
         java.util.Map<String, Object> out = new java.util.HashMap<>();
         out.put("totalComplaints", totalComplaints);
         out.put("pending", pending);
         out.put("assigned", assigned);
+        out.put("inProgress", inProgress);
         out.put("resolved", resolved);
         out.put("highPriority", highPriority);
         out.put("officers", officers);

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { 
   Shield, FileText, Clock, TrendingUp, CheckCircle2, AlertTriangle,
   User, Calendar, FileImage, MessageSquare, FileText as NoteIcon,
@@ -20,13 +21,14 @@ export const OfficerDashboard: React.FC = () => {
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
   const [loading, setLoading] = useState(true);
-  const [replyContent, setReplyContent] = useState('');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<string>('newest');
   const [noteContent, setNoteContent] = useState('');
-  const [showReplyModal, setShowReplyModal] = useState(false);
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [showEscalateModal, setShowEscalateModal] = useState(false);
   const [escalationReason, setEscalationReason] = useState('');
   const [escalationLevel, setEscalationLevel] = useState(1);
+  const navigate = useNavigate();
 
   // Fetch assigned complaints
   useEffect(() => {
@@ -52,7 +54,7 @@ export const OfficerDashboard: React.FC = () => {
           id: Number(c.id),
           submittedAt: c.submittedAt || new Date().toISOString(),
           priority: normalizedPriority as 'low' | 'medium' | 'high',
-          status: (c.status || 'assigned').toLowerCase() as ComplaintStatus,
+          status: (c.status || 'assigned').toString().toLowerCase().replace(/_/g,'-') as ComplaintStatus,
           notes: c.notes || [],
           replies: c.replies || [],
           attachments: c.attachments || [],
@@ -83,25 +85,7 @@ export const OfficerDashboard: React.FC = () => {
     }
   };
 
-  // Send reply to citizen
-  const sendReply = async () => {
-    if (!selectedComplaint || !replyContent.trim()) return;
 
-    try {
-      const newReply = await api.addReply(selectedComplaint.id, replyContent, false, token ?? undefined);
-      const updatedComplaint = {
-        ...selectedComplaint,
-        replies: [...(selectedComplaint.replies || []), newReply]
-      };
-
-      setComplaints(prev => prev.map(c => c.id === selectedComplaint.id ? updatedComplaint : c));
-      setSelectedComplaint(updatedComplaint);
-      setReplyContent('');
-      setShowReplyModal(false);
-    } catch {
-      alert("Failed to send reply.");
-    }
-  };
 
   // Add internal note
   const addInternalNote = async () => {
@@ -126,7 +110,7 @@ export const OfficerDashboard: React.FC = () => {
   const stats = {
     total: complaints.length,
     assigned: complaints.filter(c => c.status === 'assigned').length,
-    inProgress: complaints.filter(c => c.status === 'in_progress').length,
+    inProgress: complaints.filter(c => c.status === 'in-progress').length,
     resolved: complaints.filter(c => c.status === 'resolved').length,
     highPriority: complaints.filter(c => c.priority.toLowerCase() === 'high').length, // ← NOW CORRECT!
   };
@@ -177,17 +161,53 @@ export const OfficerDashboard: React.FC = () => {
                 <p className="text-sm text-slate-500 mt-2">Check back later!</p>
               </div>
             ) : (
-              <div className="space-y-4">
-                {complaints.map((complaint) => (
-                  <ComplaintCard
-                    key={complaint.id}
-                    complaint={complaint}
-                    isSelected={selectedComplaint?.id === complaint.id}
-                    onSelect={setSelectedComplaint}
-                    showStatus={true}
-                    showPriority={true}
-                  />
-                ))}
+              <div>
+                <div className="flex items-center gap-3 mb-4">
+                  <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="input-field w-44">
+                    <option value="all">All Status</option>
+                    <option value="pending">Pending</option>
+                    <option value="assigned">Assigned</option>
+                    <option value="in-progress">In Progress</option>
+                    <option value="resolved">Resolved</option>
+                  </select>
+
+                  <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="input-field w-44">
+                    <option value="newest">Newest</option>
+                    <option value="oldest">Oldest</option>
+                    <option value="priority-high">Priority (High → Low)</option>
+                    <option value="priority-low">Priority (Low → High)</option>
+                  </select>
+
+                  <button onClick={() => { setFilterStatus('all'); setSortBy('newest'); }} className="btn-ghost">Clear</button>
+                </div>
+
+                <div className="space-y-4">
+                  {complaints
+                    .filter(c => filterStatus === 'all' || c.status === filterStatus)
+                    .sort((a, b) => {
+                      if (sortBy === 'newest') return new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime();
+                      if (sortBy === 'oldest') return new Date(a.submittedAt).getTime() - new Date(b.submittedAt).getTime();
+                      if (sortBy === 'priority-high') {
+                        const order: any = { urgent: 4, high: 3, medium: 2, low: 1 };
+                        return (order[b.priority] || 0) - (order[a.priority] || 0);
+                      }
+                      if (sortBy === 'priority-low') {
+                        const order: any = { urgent: 4, high: 3, medium: 2, low: 1 };
+                        return (order[a.priority] || 0) - (order[b.priority] || 0);
+                      }
+                      return 0;
+                    })
+                    .map((complaint) => (
+                      <ComplaintCard
+                        key={complaint.id}
+                        complaint={complaint}
+                        isSelected={selectedComplaint?.id === complaint.id}
+                        onSelect={() => navigate(`/complaint/${complaint.id}`)}
+                        showStatus={true}
+                        showPriority={true}
+                      />
+                    ))}
+                </div>
               </div>
             )}
           </div>
@@ -199,8 +219,8 @@ export const OfficerDashboard: React.FC = () => {
                 {/* Header - BULLETPROOF PRIORITY BADGE */}
                 <div className="flex justify-between items-start">
                   <div>
-                    <p className="text-xs text-slate-600 uppercase font-semibold">Complaint ID</p>
-                    <p className="font-mono text-2xl font-bold text-slate-900">#{selectedComplaint.id}</p>
+                    <p className="text-xs text-slate-600 uppercase font-semibold">Reference</p>
+                    <p className="font-mono text-2xl font-bold text-slate-900">{selectedComplaint.referenceNumber || `#${selectedComplaint.id}`}</p>
                   </div>
                   <span className={`px-4 py-2 rounded-full text-xs font-bold tracking-wider shadow-sm ${
                     selectedComplaint.priority.toLowerCase() === 'high' ? 'bg-red-500 text-white' :
@@ -268,20 +288,13 @@ export const OfficerDashboard: React.FC = () => {
                     className="input-field w-full font-medium"
                   >
                     <option value="assigned">Assigned</option>
-                    <option value="in_progress">In Progress</option>
+                    <option value="in-progress">In Progress</option>
                     <option value="resolved">Resolved</option>
                   </select>
                 </div>
 
                 {/* Actions */}
                 <div className="grid grid-cols-2 gap-3 pt-4 border-t">
-                  <button
-                    onClick={() => setShowReplyModal(true)}
-                    className="btn-primary flex items-center justify-center gap-2 py-3 text-sm font-medium"
-                  >
-                    <MessageSquare className="w-4 h-4" />
-                    Reply
-                  </button>
                   <button
                     onClick={() => setShowNoteModal(true)}
                     className="btn-secondary flex items-center justify-center gap-2 py-3 text-sm font-medium"
@@ -345,38 +358,7 @@ export const OfficerDashboard: React.FC = () => {
         </div>
       </main>
 
-      {/* Reply Modal */}
-      {showReplyModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="card p-8 max-w-2xl w-full animate-slide-in-up">
-            <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
-              <MessageSquare className="w-7 h-7 text-cyan-600" />
-              Send Update to Citizen
-            </h3>
-            <textarea
-              value={replyContent}
-              onChange={(e) => setReplyContent(e.target.value)}
-              className="input-field w-full h-40 resize-none mb-4 text-base"
-              placeholder="Write a clear and professional update..."
-              maxLength={1000}
-            />
-            <div className="text-right text-sm text-slate-500 mb-4">
-              {replyContent.length}/1000
-            </div>
-            <div className="flex gap-4">
-              <button onClick={sendReply} className="btn-primary flex-1 py-3 text-lg font-semibold">
-                Send Update
-              </button>
-              <button 
-                onClick={() => { setShowReplyModal(false); setReplyContent(''); }} 
-                className="btn-ghost flex-1 py-3 text-lg"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {/* Escalation Modal */}
       {showEscalateModal && selectedComplaint && (

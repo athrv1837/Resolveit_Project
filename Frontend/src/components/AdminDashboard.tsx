@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
+import { useNavigate } from 'react-router-dom';
 import {
   Shield, Search, Filter, ChevronDown, MessageSquare, CheckCircle2,
   AlertTriangle, TrendingUp, Clock, FileText, User, UserCheck,
@@ -23,6 +24,7 @@ export const AdminDashboard: React.FC = () => {
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState<string>("newest");
   const [loading, setLoading] = useState(true);
 
   // Officer Requests Modal
@@ -38,11 +40,10 @@ export const AdminDashboard: React.FC = () => {
   const [escalationReason, setEscalationReason] = useState('');
   const [escalationLevel, setEscalationLevel] = useState(1);
 
-  // Reply & Note Modals
-  const [showReplyModal, setShowReplyModal] = useState(false);
+  // Note Modal (reply removed, moved to details page)
   const [showNoteModal, setShowNoteModal] = useState(false);
-  const [replyContent, setReplyContent] = useState("");
   const [noteContent, setNoteContent] = useState("");
+  const navigate = useNavigate();
 
   // Officers list
   const [officers, setOfficers] = useState<{ id: number; email: string; name: string; department?: string }[]>([]);
@@ -74,6 +75,8 @@ export const AdminDashboard: React.FC = () => {
         notes: c.notes || [],
         replies: c.replies || [],
         attachments: c.attachments || [],
+        status: c.status ? c.status.toString().toLowerCase().replace(/_/g, '-') : 'pending',
+        priority: c.priority ? c.priority.toString().toLowerCase() : 'medium',
       })) : []);
     } catch (err) {
       alert("Failed to load complaints.");
@@ -164,7 +167,9 @@ export const AdminDashboard: React.FC = () => {
   // Update status/priority
   const updateStatus = async (id: number, status: ComplaintStatus) => {
     try {
-      await api.updateComplaintStatus(id, status, token ?? undefined);
+      // convert to backend enum format (IN_PROGRESS, UNDER_REVIEW, etc.)
+      const backendStatus = String(status).toUpperCase().replace(/-/g, '_');
+      await api.updateComplaintStatus(id, backendStatus, null, token ?? undefined);
       setComplaints(prev => prev.map(c => c.id === id ? { ...c, status } : c));
       if (selectedComplaint?.id === id) setSelectedComplaint(prev => prev ? { ...prev, status } : null);
     } catch { alert("Failed"); }
@@ -172,24 +177,14 @@ export const AdminDashboard: React.FC = () => {
 
   const updatePriority = async (id: number, priority: ComplaintPriority) => {
     try {
-      await api.updateComplaintPriority(id, priority, token ?? undefined);
+      const backendPriority = String(priority).toUpperCase();
+      await api.updateComplaintPriority(id, backendPriority, token ?? undefined);
       setComplaints(prev => prev.map(c => c.id === id ? { ...c, priority } : c));
       if (selectedComplaint?.id === id) setSelectedComplaint(prev => prev ? { ...prev, priority } : null);
     } catch { alert("Failed"); }
   };
 
-  // Send reply
-  const sendReply = async () => {
-    if (!selectedComplaint || !replyContent.trim()) return;
-    try {
-      const newReply = await api.addReply(selectedComplaint.id, replyContent, true, token ?? undefined);
-      const updated = { ...selectedComplaint, replies: [...(selectedComplaint.replies || []), newReply] };
-      setComplaints(prev => prev.map(c => c.id === selectedComplaint.id ? updated : c));
-      setSelectedComplaint(updated);
-      setReplyContent("");
-      setShowReplyModal(false);
-    } catch { alert("Failed"); }
-  };
+
 
   // Add note
   const addNote = async () => {
@@ -204,18 +199,34 @@ export const AdminDashboard: React.FC = () => {
     } catch { alert("Failed"); }
   };
 
-  const filteredComplaints = complaints.filter(c => {
-    const matchesStatus = filterStatus === "all" || c.status === filterStatus;
-    const matchesSearch = c.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          c.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          c.id.toString().includes(searchTerm);
-    return matchesStatus && matchesSearch;
-  });
+  const visibleComplaints = complaints
+    .filter(c => {
+      const matchesStatus = filterStatus === "all" || c.status === filterStatus;
+      const matchesSearch = c.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            c.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            c.id.toString().includes(searchTerm);
+      return matchesStatus && matchesSearch;
+    })
+    .sort((a, b) => {
+      if (sortBy === 'newest') return new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime();
+      if (sortBy === 'oldest') return new Date(a.submittedAt).getTime() - new Date(b.submittedAt).getTime();
+      if (sortBy === 'priority-high') {
+        const order: any = { urgent: 4, high: 3, medium: 2, low: 1 };
+        return (order[b.priority] || 0) - (order[a.priority] || 0);
+      }
+      if (sortBy === 'priority-low') {
+        const order: any = { urgent: 4, high: 3, medium: 2, low: 1 };
+        return (order[a.priority] || 0) - (order[b.priority] || 0);
+      }
+      if (sortBy === 'status-asc') return a.status.localeCompare(b.status);
+      if (sortBy === 'status-desc') return b.status.localeCompare(a.status);
+      return 0;
+    });
 
   const stats = {
     total: analytics?.totalComplaints ?? complaints.length,
     pending: analytics?.pending ?? complaints.filter(c => c.status === "pending").length,
-    inProgress: analytics?.assigned ?? complaints.filter(c => ["assigned", "in-progress"].includes(c.status)).length,
+    assigned: analytics?.assigned ?? complaints.filter(c => ["assigned", "in-progress"].includes(c.status)).length,
     resolved: analytics?.resolved ?? complaints.filter(c => c.status === "resolved").length,
     highPriority: analytics?.highPriority ?? complaints.filter(c => c.priority === "high").length,
   };
@@ -224,10 +235,10 @@ export const AdminDashboard: React.FC = () => {
   // Use analytics data when available; otherwise compute from complaints
   const priorityData = analytics?.priorityBreakdown
     ? [
-        { name: 'Low', value: analytics.priorityBreakdown.low || 0, color: '#10B981' },
-        { name: 'Medium', value: analytics.priorityBreakdown.medium || 0, color: '#F59E0B' },
-        { name: 'High', value: analytics.priorityBreakdown.high || 0, color: '#EF4444' },
-        { name: 'Urgent', value: analytics.priorityBreakdown.urgent || 0, color: '#B91C1C' },
+        { name: 'Low', value: Number(analytics.priorityBreakdown.low || 0), color: '#10B981' },
+        { name: 'Medium', value: Number(analytics.priorityBreakdown.medium || 0), color: '#F59E0B' },
+        { name: 'High', value: Number(analytics.priorityBreakdown.high || 0), color: '#EF4444' },
+        { name: 'Urgent', value: Number(analytics.priorityBreakdown.urgent || 0), color: '#B91C1C' },
       ]
     : [
         { name: 'Low', value: complaints.filter(c => c.priority === 'low').length, color: '#10B981' },
@@ -236,18 +247,30 @@ export const AdminDashboard: React.FC = () => {
         { name: 'Urgent', value: complaints.filter(c => c.priority === 'urgent').length, color: '#B91C1C' },
       ];
 
+  const statusOrder = ['pending', 'assigned', 'in-progress', 'resolved', 'escalated', 'closed'];
   const statusData = analytics?.statusBreakdown
-    ? Object.entries(analytics.statusBreakdown).map(([k, v]) => ({ name: k.charAt(0).toUpperCase() + k.slice(1), value: Number(v) }))
+    ? statusOrder.map(k => ({ name: k === 'in-progress' ? 'In Progress' : k.charAt(0).toUpperCase() + k.slice(1), value: Number(analytics.statusBreakdown[k] || 0) })).filter(s => s.value > 0)
     : [
         { name: 'Pending', value: complaints.filter(c => c.status === 'pending').length },
         { name: 'Assigned', value: complaints.filter(c => c.status === 'assigned').length },
-        { name: 'In Progress', value: complaints.filter(c => c.status === 'in_progress').length },
+        { name: 'In Progress', value: complaints.filter(c => ['in-progress', 'under-review'].includes(c.status)).length },
         { name: 'Resolved', value: complaints.filter(c => c.status === 'resolved').length },
+        { name: 'Escalated', value: complaints.filter(c => c.status === 'escalated').length },
+        { name: 'Closed', value: complaints.filter(c => c.status === 'closed').length },
       ];
 
   const workloadData = (analytics?.workload
-    ? Object.entries(analytics.workload).map(([email, count]) => ({ email, count }))
-    : officers.map(o => ({ email: o.email, count: complaintRepositoryFallbackCount(complaints, o.email) }))).sort((a: any, b: any) => b.count - a.count);
+    ? Object.entries(analytics.workload).map(([email, count]) => {
+        const off = officers.find((o: any) => o.email === email);
+        return { email, name: off?.name ?? (email?.split('@')[0] ?? email), count };
+      })
+    : officers.map(o => ({ email: o.email, name: o.name ?? o.email.split('@')[0], count: complaintRepositoryFallbackCount(complaints, o.email) }))).sort((a: any, b: any) => b.count - a.count);
+
+  // Shorten name for X-axis labels (keep it readable) and show full name+email in tooltips
+  const formatLabelTick = (label: string) => {
+    if (!label) return '';
+    return label.length > 15 ? label.slice(0, 15) + '…' : label;
+  };
 
   function complaintRepositoryFallbackCount(list: any[], email: string) {
     return list.filter(c => c.assignedTo === email).length;
@@ -263,7 +286,7 @@ export const AdminDashboard: React.FC = () => {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-6 mb-12">
           <StatCard label="Total" value={stats.total} icon={<FileText />} color="blue" />
           <StatCard label="Pending" value={stats.pending} icon={<Clock />} color="amber" />
-          <StatCard label="In Progress" value={stats.inProgress} icon={<TrendingUp />} color="cyan" />
+          <StatCard label="Assigned" value={stats.assigned} icon={<TrendingUp />} color="cyan" />
           <StatCard label="Resolved" value={stats.resolved} icon={<CheckCircle2 />} color="green" />
           <StatCard label="High Priority" value={stats.highPriority} icon={<AlertTriangle />} color="red" />
         </div>
@@ -278,10 +301,16 @@ export const AdminDashboard: React.FC = () => {
             <h3 className="font-bold text-lg mb-3">Officer Workload</h3>
             <div style={{ height: 360 }} className="rounded-lg overflow-hidden">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={workloadData.slice(0, 12)} layout="vertical" margin={{ left: 8, right: 8 }}>
-                  <XAxis type="number" />
-                  <YAxis dataKey="email" type="category" width={180} />
-                  <Tooltip />
+                <BarChart data={workloadData.slice(0, 12)} margin={{ left: 8, right: 8 }} barSize={36} barCategoryGap="20%">
+                  <XAxis dataKey="name" type="category" tickFormatter={formatLabelTick} tick={{ angle: -45, textAnchor: 'end' } as any} height={80} interval={0} />
+                  <YAxis allowDecimals={false} domain={[0, 'dataMax']} />
+                  <Tooltip
+                    formatter={(value: any) => [value, 'count']}
+                    labelFormatter={(label: string) => {
+                      const item = workloadData.find((d: any) => d.name === label);
+                      return `Officer: ${label}${item?.email ? ' (' + item.email + ')' : ''}`;
+                    }}
+                  />
                   <Bar dataKey="count" fill="#0EA5A4" />
                 </BarChart>
               </ResponsiveContainer>
@@ -330,7 +359,7 @@ export const AdminDashboard: React.FC = () => {
 
         {/* Filters */}
         <div className="card p-6 mb-8 shadow-lg">
-          <div className="flex flex-col lg:flex-row gap-4">
+          <div className="flex flex-col lg:flex-row gap-4 items-center">
             <div className="flex-1 relative">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
               <input
@@ -341,23 +370,42 @@ export const AdminDashboard: React.FC = () => {
                 className="input-field pl-12"
               />
             </div>
-            <select
-              value={filterStatus}
-              onChange={e => setFilterStatus(e.target.value)}
-              className="input-field w-full lg:w-64"
-            >
-              <option value="all">All Status</option>
-              <option value="pending">Pending</option>
-              <option value="assigned">Assigned</option>
-              <option value="in-progress">In Progress</option>
-              <option value="resolved">Resolved</option>
-            </select>
-            <button
-              onClick={() => { fetchPendingOfficerRequests(); setShowOfficerRequestModal(true); }}
-              className="btn-primary whitespace-nowrap"
-            >
-              <Users className="w-5 h-5" /> Officer Requests
-            </button>
+
+            <div className="flex gap-3 items-center">
+              <select
+                value={filterStatus}
+                onChange={e => setFilterStatus(e.target.value)}
+                className="input-field w-44"
+              >
+                <option value="all">All Status</option>
+                <option value="pending">Pending</option>
+                <option value="assigned">Assigned</option>
+                <option value="in-progress">In Progress</option>
+                <option value="resolved">Resolved</option>
+                <option value="escalated">Escalated</option>
+                <option value="closed">Closed</option>
+              </select>
+
+              <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="input-field w-48">
+                <option value="newest">Newest</option>
+                <option value="oldest">Oldest</option>
+                <option value="priority-high">Priority (High → Low)</option>
+                <option value="priority-low">Priority (Low → High)</option>
+                <option value="status-asc">Status A→Z</option>
+                <option value="status-desc">Status Z→A</option>
+              </select>
+
+              <button onClick={() => { setFilterStatus('all'); setSortBy('newest'); setSearchTerm(''); }} className="btn-ghost">
+                Clear
+              </button>
+
+              <button
+                onClick={() => { fetchPendingOfficerRequests(); setShowOfficerRequestModal(true); }}
+                className="btn-primary whitespace-nowrap"
+              >
+                <Users className="w-5 h-5" /> Officer Requests
+              </button>
+            </div>
           </div>
         </div>
 
@@ -366,18 +414,18 @@ export const AdminDashboard: React.FC = () => {
           <div className="lg:col-span-2 space-y-4">
             {loading ? (
               <div className="text-center py-20">Loading...</div>
-            ) : filteredComplaints.length === 0 ? (
+            ) : visibleComplaints.length === 0 ? (
               <div className="card p-20 text-center">
                 <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
                 <p className="text-xl text-slate-500">No complaints found</p>
               </div>
             ) : (
-              filteredComplaints.map(c => (
+              visibleComplaints.map(c => (
                 <ComplaintCard
                   key={c.id}
                   complaint={c}
                   isSelected={selectedComplaint?.id === c.id}
-                  onSelect={setSelectedComplaint}
+                  onSelect={() => navigate(`/complaint/${c.id}`)}
                   showStatus={true}
                   showPriority={true}
                 />
@@ -391,8 +439,8 @@ export const AdminDashboard: React.FC = () => {
               <div className="card p-6 sticky top-24 space-y-6 max-h-[calc(100vh-10rem)] overflow-y-auto">
                 <div className="flex justify-between items-start">
                   <div>
-                    <p className="text-xs uppercase text-slate-600 font-bold">Complaint ID</p>
-                    <p className="text-2xl font-mono font-bold text-cyan-600">#{selectedComplaint.id}</p>
+                    <p className="text-xs uppercase text-slate-600 font-bold">Reference</p>
+                    <p className="text-2xl font-mono font-bold text-cyan-600">{selectedComplaint.referenceNumber || `#${selectedComplaint.id}`}</p>
                   </div>
                   <span className={`px-3 py-1 rounded-full text-xs font-bold ${
                     selectedComplaint.priority === 'high' ? 'bg-red-100 text-red-700' :
@@ -449,6 +497,8 @@ export const AdminDashboard: React.FC = () => {
                       <option value="assigned">Assigned</option>
                       <option value="in-progress">In Progress</option>
                       <option value="resolved">Resolved</option>
+                      <option value="escalated">Escalated</option>
+                      <option value="closed">Closed</option>
                     </select>
                   </div>
                   <div>
@@ -467,9 +517,6 @@ export const AdminDashboard: React.FC = () => {
 
                 {/* Action Buttons */}
                 <div className="grid grid-cols-2 gap-3">
-                  <button onClick={() => setShowReplyModal(true)} className="btn-primary py-3">
-                    <MessageSquare className="w-5 h-5" /> Reply
-                  </button>
                   <button onClick={() => setShowNoteModal(true)} className="btn-secondary py-3">
                     <StickyNote className="w-5 h-5" /> Note
                   </button>
@@ -606,24 +653,7 @@ export const AdminDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Reply Modal */}
-      {showReplyModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="card p-8 max-w-2xl w-full">
-            <h3 className="text-2xl font-bold mb-6">Reply to Citizen</h3>
-            <textarea
-              value={replyContent}
-              onChange={e => setReplyContent(e.target.value)}
-              className="input-field w-full h-40 resize-none mb-4"
-              placeholder="Write your reply..."
-            />
-            <div className="flex gap-4">
-              <button onClick={() => { setShowReplyModal(false); setReplyContent(""); }} className="flex-1 btn-ghost py-4">Cancel</button>
-              <button onClick={sendReply} className="flex-1 btn-primary py-4 font-bold">Send Reply</button>
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {/* Note Modal */}
       {showNoteModal && (

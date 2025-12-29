@@ -5,33 +5,33 @@ import com.resolveit.resloveitbackend.enums.ComplaintStatus;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import com.resolveit.resloveitbackend.dto.ReplyDto;
 
-/**
- * Government Grievance Data Transfer Object
- * Contains complaint details with audit and department tracking
- */
 public class ComplaintDto {
     private Long id;
-    private String referenceNumber;        // ✅ NEW: Government reference number
+    private String referenceNumber;        
     private String title;
     private String description;
     private String category;
     private ComplaintStatus status;
     private ComplaintPriority priority;
     private String assignedTo;
-    private String assignedDepartment;        // ✅ NEW: Department of assigned officer
+    private String assignedDepartment;      
     private boolean isAnonymous;
     private String submittedBy;
     private LocalDateTime submittedAt;
-    private LocalDateTime lastUpdatedAt;       // ✅ NEW: Audit tracking
-    private String lastUpdatedBy;              // ✅ NEW: Who made the last change
+    private LocalDateTime lastUpdatedAt;       
+    private String lastUpdatedBy;             
     private List<String> attachments;
-    private int attachmentCount;               // ✅ NEW: For summary view
+    private int attachmentCount;               
     // Escalation info
     private boolean escalated;
     private Integer escalationLevel;
     private String escalationReason;
     private LocalDateTime escalatedAt;
+
+    // Replies
+    private java.util.List<ReplyDto> replies;
 
     // Getters and setters
     public Long getId() { return id; }
@@ -74,4 +74,6 @@ public class ComplaintDto {
     public void setEscalationReason(String escalationReason) { this.escalationReason = escalationReason; }
     public LocalDateTime getEscalatedAt() { return escalatedAt; }
     public void setEscalatedAt(LocalDateTime escalatedAt) { this.escalatedAt = escalatedAt; }
+    public java.util.List<ReplyDto> getReplies() { return replies; }
+    public void setReplies(java.util.List<ReplyDto> replies) { this.replies = replies; }
 }

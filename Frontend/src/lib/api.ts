@@ -147,6 +147,15 @@ export const api = {
     return handleRes(res);
   },
 
+  async getComplaintById(id: number | string, token?: string) {
+    const res = await fetch(`${API_BASE}/complaints/${id}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+    if (!res.ok) {
+      const txt = await res.text();
+      throw new Error(txt || `Request failed with status ${res.status}`);
+    }
+    return handleRes(res);
+  },
+
   async approveOfficer(id: number | string, token?: string) {
     const res = await fetch(`${API_BASE}/admin/approve/${id}`, { method: 'POST', headers: token ? { Authorization: `Bearer ${token}` } : {} });
     if (!res.ok) throw new Error(await res.text());

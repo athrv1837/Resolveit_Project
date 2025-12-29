@@ -13,6 +13,9 @@ import { useState } from "react";
 
 const queryClient = new QueryClient();
 
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import ComplaintDetails from './components/ComplaintDetails';
+
 const AppContent = () => {
   const { user, isAdmin, isOfficer } = useAuth();
   const [showLogin, setShowLogin] = useState(true);
@@ -25,9 +28,15 @@ const AppContent = () => {
     );
   }
 
-  if (isAdmin()) return <AdminDashboard />;
-  if (isOfficer()) return <OfficerDashboard />;
-  return <CitizenDashboard />;
+  // Root content still decided by role, but we also expose a complaint details route
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/complaint/:id" element={<ComplaintDetails />} />
+        <Route path="/" element={isAdmin() ? <AdminDashboard /> : isOfficer() ? <OfficerDashboard /> : <CitizenDashboard />} />
+      </Routes>
+    </BrowserRouter>
+  );
 };
 
 const App = () => (
