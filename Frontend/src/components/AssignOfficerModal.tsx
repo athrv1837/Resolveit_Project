@@ -26,8 +26,11 @@ export const AssignOfficerModal: React.FC<AssignOfficerModalProps> = ({ complain
     try {
       const data = await api.getOfficers(token ?? undefined);
       setOfficers(Array.isArray(data) ? data : []);
-    } catch (err) {
-      alert("Failed to load officers");
+      console.log('Officers fetched (modal):', Array.isArray(data) ? data.length : 'not-array', data);
+    } catch (err: any) {
+      console.error('Failed to load officers:', err);
+      // If the API returned a status text, show it; otherwise show generic message
+      alert("Failed to load officers: " + (err?.message || String(err)));
     } finally {
       setLoading(false);
     }

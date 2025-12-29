@@ -73,6 +73,7 @@ public class AdminController {
             @PathVariable Long complaintId,
             @RequestBody Map<String, String> request) {
 
+        long start = System.currentTimeMillis();
         String officerEmail = request.get("officerEmail");
 
         if (officerEmail == null || officerEmail.trim().isEmpty()) {
@@ -94,13 +95,17 @@ public class AdminController {
         complaint.setAssignedTo(officerEmail);
         complaint.setStatus(ComplaintStatus.ASSIGNED); // Auto-set to ASSIGNED
         complaintRepository.save(complaint);
+        long afterSave = System.currentTimeMillis();
+        System.out.println("[Assign] saved complaint " + complaintId + " assignedTo=" + officerEmail + " in " + (afterSave - start) + "ms");
 
-        // Notify officer and submitter
+        // Notify officer and submitter (fire-and-forget async now)
         try {
             emailService.sendSimpleMessage(officerEmail, "New Assignment: " + complaint.getReferenceNumber(), "You have been assigned complaint " + complaint.getReferenceNumber());
             if (complaint.getSubmittedBy() != null) emailService.sendStatusUpdateEmail(complaint.getSubmittedBy(), complaint.getReferenceNumber(), complaint.getStatus().name());
         } catch (Exception ignored) {}
 
+        long end = System.currentTimeMillis();
+        System.out.println("[Assign] completed handler for " + complaintId + " total=" + (end - start) + "ms");
         return ResponseEntity.ok("Officer " + officerOpt.get().getName() + " assigned successfully.");
     }
 

@@ -40,9 +40,20 @@ export const OfficerDashboard: React.FC = () => {
   const fetchAssignedComplaints = async () => {
     setLoading(true);
     try {
+      console.log('fetchAssignedComplaints token present=', !!token, 'token=', token ? token.substring(0,20) + '...' : null);
       const data = await api.getOfficerComplaints(user?.email || '', token ?? undefined);
+      console.log('Officer complaints raw response:', data);
 
-      const mapped: Complaint[] = data.map((c: any) => {
+      // Normalize response shapes: array, { data: [] }, { content: [] }, { items: [] }, or single object
+      let items: any[] = [];
+      if (Array.isArray(data)) items = data;
+      else if (data?.data && Array.isArray(data.data)) items = data.data;
+      else if (data?.content && Array.isArray(data.content)) items = data.content;
+      else if (data?.items && Array.isArray(data.items)) items = data.items;
+      else if (data == null) items = [];
+      else if (typeof data === 'object') items = [data];
+
+      const mapped: Complaint[] = items.map((c: any) => {
         const rawPriority = c.priority?.toString().trim();
         const normalizedPriority = rawPriority 
           ? rawPriority.toLowerCase() === 'high' ? 'high' :
@@ -62,10 +73,19 @@ export const OfficerDashboard: React.FC = () => {
           citizenName: c.user?.name || c.submittedBy || 'Citizen',
         };
       });
+
       setComplaints(mapped);
-    } catch (err) {
-      console.error("Fetch error:", err);
-      alert("No complaints assigned yet.");
+      console.log('Mapped complaints count:', mapped.length);
+    } catch (err: any) {
+      console.error('Fetch error:', err);
+      // Provide a helpful message depending on the error
+      const message = err?.message || String(err);
+      if (message.includes('email is required')) {
+        alert('Officer email not available. Please log in again.');
+      } else {
+        alert('Failed to fetch assigned complaints. ' + (message || ''));
+      }
+      setComplaints([]);
     } finally {
       setLoading(false);
     }
@@ -118,6 +138,11 @@ export const OfficerDashboard: React.FC = () => {
   if (!user) {
     return <div className="text-center py-32 text-xl">Please log in as an officer.</div>;
   }
+
+  // DEBUG: log complaints state so we can see updates and why UI might still show empty
+  useEffect(() => {
+    console.log('Officer complaints state updated:', complaints.length, complaints.map(c => ({ id: c.id, status: c.status, assignedTo: c.assignedTo }))); 
+  }, [complaints]);
 
   return (
     <RoleGuard allowed={['officer', 'admin']}>

@@ -98,12 +98,15 @@ public class OfficerController {
             return ResponseEntity.badRequest().body(null);
         }
 
-        // Optional: Verify officer exists
-        if (!officerRepo.existsByEmail(email)) {
-            return ResponseEntity.status(403).body(null); // Or not found
+        // Don't fail if officer is not found in officer table; return empty list so frontend handles it gracefully
+        List<Complaint> assignedComplaints = complaintRepository.findByAssignedTo(email);
+        if (assignedComplaints == null || assignedComplaints.isEmpty()) {
+            // log for diagnostics
+            System.out.println("No complaints found assigned to: " + email);
+            return ResponseEntity.ok(java.util.Collections.emptyList());
         }
 
-        List<Complaint> assignedComplaints = complaintRepository.findByAssignedTo(email);
+        System.out.println("Found " + assignedComplaints.size() + " complaints for " + email);
         return ResponseEntity.ok(assignedComplaints);
     }
 }

@@ -71,6 +71,7 @@ export const ComplaintProvider: React.FC<{ children: ReactNode }> = ({ children 
 
   const fetchComplaints = async () => {
     try {
+      console.log('fetchComplaints: user=', user?.email, 'role=', user?.role, 'tokenPresent=', !!token);
       let data;
       if (user?.role === 'admin' || user?.role === 'officer') {
         data = await api.getAllComplaints(token ?? undefined);
@@ -91,6 +92,12 @@ export const ComplaintProvider: React.FC<{ children: ReactNode }> = ({ children 
 
   const fetchOfficers = async () => {
     try {
+      // Only admin needs the full officers list in the UI; avoid making this call for other roles (prevents 403 noise)
+      if (user?.role !== 'admin') {
+        setOfficers([]);
+        return;
+      }
+
       const res = await api.getOfficers(token ?? undefined);
       setOfficers(Array.isArray(res) ? res : []);
     } catch (err) {
