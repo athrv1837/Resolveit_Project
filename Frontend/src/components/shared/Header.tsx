@@ -14,31 +14,31 @@ export const Header: React.FC<HeaderProps> = ({ title, subtitle, icon }) => {
 
   return (
     <>
-      <nav className="sticky top-0 z-50 backdrop-blur-2xl bg-white/80 border-b border-slate-200/50 shadow-sm">
+      <nav className="sticky top-0 z-50 backdrop-blur-xl bg-gradient-to-r from-white via-blue-50/30 to-cyan-50/30 border-b border-slate-200/60 shadow-lg shadow-blue-100/50">
         <div className="container-custom h-16 flex items-center justify-between">
           <div className="flex items-center space-x-3 flex-1">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-xl flex items-center justify-center shadow-lg glow-blue">
+            <div className="w-11 h-11 bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center shadow-xl shadow-blue-500/30 hover:shadow-2xl hover:shadow-blue-500/40 transition-all duration-300 hover:scale-110">
               {icon}
             </div>
             <div className="hidden sm:block">
-              <h2 className="text-lg font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+              <h2 className="text-lg font-extrabold bg-gradient-to-r from-blue-700 via-blue-600 to-cyan-600 bg-clip-text text-transparent drop-shadow-sm">
                 ResolveIt
               </h2>
-              <p className="text-xs text-slate-500 font-medium">{subtitle}</p>
+              <p className="text-xs text-slate-600 font-semibold tracking-wide">{subtitle}</p>
             </div>
           </div>
 
           <div className="hidden md:flex items-center space-x-4 flex-1 justify-end">
-            <div className="text-right border-r border-slate-200 pr-4">
-              <p className="text-sm font-semibold text-slate-900">{user?.name}</p>
-              <p className="text-xs text-slate-500 capitalize">{user?.role}</p>
+            <div className="text-right border-r border-slate-300/60 pr-5">
+              <p className="text-sm font-bold text-slate-800">{user?.name}</p>
+              <p className="text-xs text-slate-500 capitalize font-medium">{user?.role}</p>
             </div>
             <button
               onClick={logout}
-              className="btn-ghost flex items-center space-x-2"
+              className="btn-ghost flex items-center space-x-2 hover:bg-red-50 hover:text-red-600 transition-all duration-200"
             >
               <LogOut className="w-4 h-4" />
-              <span className="text-sm font-medium">Logout</span>
+              <span className="text-sm font-semibold">Logout</span>
             </button>
           </div>
 

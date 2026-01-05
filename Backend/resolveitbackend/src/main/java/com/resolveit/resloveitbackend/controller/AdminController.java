@@ -76,18 +76,23 @@ public class AdminController {
         long start = System.currentTimeMillis();
         String officerEmail = request.get("officerEmail");
 
+        System.out.println("[Admin Assign] Attempting to assign complaint " + complaintId + " to officer: " + officerEmail);
+
         if (officerEmail == null || officerEmail.trim().isEmpty()) {
+            System.out.println("[Admin Assign] Error: officerEmail is null or empty");
             return ResponseEntity.badRequest().body("officerEmail is required");
         }
 
         // Simple analytics for admin dashboard
         Optional<Complaint> complaintOpt = complaintRepository.findById(complaintId);
         if (complaintOpt.isEmpty()) {
+            System.out.println("[Admin Assign] Error: Complaint not found with ID: " + complaintId);
             return ResponseEntity.status(404).body("Complaint not found with ID: " + complaintId);
         }
 
         Optional<Officer> officerOpt = officerRepo.findByEmail(officerEmail);
         if (officerOpt.isEmpty()) {
+            System.out.println("[Admin Assign] Error: No approved officer found with email: " + officerEmail);
             return ResponseEntity.badRequest().body("No approved officer found with email: " + officerEmail);
         }
 
@@ -96,7 +101,7 @@ public class AdminController {
         complaint.setStatus(ComplaintStatus.ASSIGNED); // Auto-set to ASSIGNED
         complaintRepository.save(complaint);
         long afterSave = System.currentTimeMillis();
-        System.out.println("[Assign] saved complaint " + complaintId + " assignedTo=" + officerEmail + " in " + (afterSave - start) + "ms");
+        System.out.println("[Admin Assign] ✅ Successfully assigned complaint " + complaintId + " to " + officerEmail + " (assignedTo=" + complaint.getAssignedTo() + ") in " + (afterSave - start) + "ms");
 
         // Notify officer and submitter (fire-and-forget async now)
         try {
@@ -105,7 +110,7 @@ public class AdminController {
         } catch (Exception ignored) {}
 
         long end = System.currentTimeMillis();
-        System.out.println("[Assign] completed handler for " + complaintId + " total=" + (end - start) + "ms");
+        System.out.println("[Admin Assign] completed handler for " + complaintId + " total=" + (end - start) + "ms");
         return ResponseEntity.ok("Officer " + officerOpt.get().getName() + " assigned successfully.");
     }
 

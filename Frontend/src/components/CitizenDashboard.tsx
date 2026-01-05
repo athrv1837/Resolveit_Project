@@ -35,6 +35,9 @@ export const CitizenDashboard: React.FC = () => {
 
   const userComplaints = Array.isArray(complaints) ? complaints : [];
 
+  // Auto-refresh polling interval
+  const COMPLAINTS_POLL_INTERVAL = 15000; // 15 seconds
+
   // normalize helpers (backend may return UPPERCASE / underscored enums)
   const normalizeStatus = (s: any) => {
     if (!s) return 'pending';
@@ -78,6 +81,12 @@ export const CitizenDashboard: React.FC = () => {
 
   useEffect(() => {
     fetchComplaints();
+
+    // Set up polling for complaints
+    const complaintsPoll = setInterval(fetchComplaints, COMPLAINTS_POLL_INTERVAL);
+
+    // Cleanup on unmount
+    return () => clearInterval(complaintsPoll);
   }, [user]);
 
   // ✅ Handle form submission
@@ -173,9 +182,9 @@ export const CitizenDashboard: React.FC = () => {
             />
             {/* Priority breakdown for user's complaints */}
             <div className="grid grid-cols-3 gap-3">
-              <StatCard label="Low" value={normalizedComplaints.filter((c) => c.priority === 'low').length} icon={<FileText className="w-5 h-5" />} color="green" />
-              <StatCard label="Medium" value={normalizedComplaints.filter((c) => c.priority === 'medium').length} icon={<FileText className="w-5 h-5" />} color="amber" />
-              <StatCard label="High" value={normalizedComplaints.filter((c) => c.priority === 'high' || c.priority === 'urgent').length} icon={<FileText className="w-5 h-5" />} color="red" />
+              <StatCard label="Low" value={normalizedComplaints.filter((c) => c.priority === 'low').length} icon={<FileText className="w-6 h-6" />} color="green" />
+              <StatCard label="Medium" value={normalizedComplaints.filter((c) => c.priority === 'medium').length} icon={<FileText className="w-6 h-6" />} color="amber" />
+              <StatCard label="High" value={normalizedComplaints.filter((c) => c.priority === 'high' || c.priority === 'urgent').length} icon={<FileText className="w-6 h-6" />} color="red" />
             </div>
           </div>
 
@@ -197,22 +206,23 @@ export const CitizenDashboard: React.FC = () => {
                 {!showForm ? (
                   <button
                     onClick={() => setShowForm(true)}
-                    className="w-full btn-primary flex items-center justify-center space-x-2 py-4"
+                    className="w-full btn-primary flex items-center justify-center gap-3 py-5 text-lg font-bold shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all duration-300"
                   >
-                    <Plus className="w-5 h-5" />
+                    <Plus className="w-6 h-6" />
                     <span>File a New Complaint</span>
+                    <ChevronRight className="w-5 h-5" />
                   </button>
                 ) : (
                   <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Category */}
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-3">
+                      <label className="block text-sm font-extrabold text-slate-800 mb-3 tracking-wide uppercase text-xs">
                         Category
                       </label>
                       <select
                         value={category}
                         onChange={(e) => setCategory(e.target.value)}
-                        className="input-field"
+                        className="input-field font-semibold"
                       >
                         <option>Infrastructure</option>
                         <option>Utilities</option>
@@ -227,7 +237,7 @@ export const CitizenDashboard: React.FC = () => {
 
                     {/* Title */}
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-3">
+                      <label className="block text-sm font-extrabold text-slate-800 mb-3 tracking-wide uppercase text-xs">
                         Title
                       </label>
                       <input
@@ -235,34 +245,34 @@ export const CitizenDashboard: React.FC = () => {
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
                         required
-                        className="input-field"
+                        className="input-field font-semibold"
                         placeholder="Brief description of your issue"
                       />
                     </div>
 
                     {/* Description */}
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-3">
+                      <label className="block text-sm font-extrabold text-slate-800 mb-3 tracking-wide uppercase text-xs">
                         Description
                       </label>
                       <textarea
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
                         required
-                        rows={5}
-                        className="input-field resize-none"
+                        rows={6}
+                        className="input-field resize-none font-medium leading-relaxed"
                         placeholder="Provide details about your complaint..."
                       />
                     </div>
 
                     {/* Attachments */}
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-3">
+                      <label className="block text-sm font-extrabold text-slate-800 mb-3 tracking-wide uppercase text-xs">
                         Attachments (Optional)
                       </label>
-                      <label className="flex items-center justify-center w-full p-4 border-2 border-dashed border-slate-300 rounded-lg cursor-pointer hover:border-blue-500 transition-colors">
-                        <Upload className="w-5 h-5 text-slate-400 mr-2" />
-                        <span className="text-sm text-slate-600">
+                      <label className="flex items-center justify-center w-full p-6 border-2 border-dashed border-slate-300 rounded-2xl cursor-pointer hover:border-blue-500 hover:bg-blue-50/50 transition-all duration-200 group">
+                        <Upload className="w-5 h-5 text-slate-400 mr-2 group-hover:text-blue-500 transition-colors" />
+                        <span className="text-sm text-slate-600 font-semibold group-hover:text-blue-700">
                           Upload photos or files
                         </span>
                         <input
@@ -294,35 +304,39 @@ export const CitizenDashboard: React.FC = () => {
                     </div>
 
                     {/* Anonymous Option */}
-                    <div className="flex items-center space-x-3 p-4 bg-slate-50 rounded-lg">
+                    <div className="flex items-center space-x-3 p-5 bg-gradient-to-br from-slate-50 to-blue-50/30 rounded-2xl border-2 border-slate-200 hover:border-blue-300 transition-all duration-200">
                       <input
                         type="checkbox"
                         id="anonymous"
                         checked={isAnonymous}
                         onChange={(e) => setIsAnonymous(e.target.checked)}
-                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
                       />
                       <label
                         htmlFor="anonymous"
-                        className="text-sm font-semibold text-slate-700 cursor-pointer"
+                        className="text-sm font-bold text-slate-800 cursor-pointer flex-1"
                       >
                         Submit Anonymously
                       </label>
                     </div>
 
                     {/* Submit Buttons */}
-                    <div className="flex gap-3 pt-4">
+                    <div className="flex gap-4 pt-6">
                       <button
                         type="submit"
                         disabled={loading}
-                        className="flex-1 btn-primary"
+                        className="flex-1 btn-primary py-4 text-base font-bold shadow-xl hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {loading ? "Submitting..." : "Submit Complaint"}
+                        {loading ? (
+                          <span className="flex items-center justify-center gap-2">
+                            <span className="animate-spin">⏳</span> Submitting...
+                          </span>
+                        ) : "Submit Complaint"}
                       </button>
                       <button
                         type="button"
                         onClick={() => setShowForm(false)}
-                        className="flex-1 btn-secondary"
+                        className="flex-1 btn-secondary py-4 text-base font-bold"
                       >
                         Cancel
                       </button>
@@ -332,16 +346,24 @@ export const CitizenDashboard: React.FC = () => {
               </div>
 
               {/* ✅ Complaint List */}
-              <div className="card p-8">
-                <h2 className="text-2xl font-bold text-slate-900 mb-6">
-                  Your Complaints
-                </h2>
+              <div className="card p-8 shadow-2xl border-2 border-slate-200/70">
+                <div className="flex items-center gap-4 mb-8">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-slate-600 to-slate-800 flex items-center justify-center shadow-lg">
+                    <FileText className="w-6 h-6 text-white" />
+                  </div>
+                  <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+                    Your Complaints
+                  </h2>
+                </div>
 
                 {userComplaints.length === 0 ? (
-                  <div className="text-center py-12">
-                    <AlertCircle className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-                    <p className="text-slate-500 mb-4">
-                      You haven't filed any complaints yet
+                  <div className="text-center py-16 bg-gradient-to-br from-slate-50 to-blue-50/30 rounded-2xl border-2 border-slate-200">
+                    <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-slate-200 to-blue-200 flex items-center justify-center">
+                      <AlertCircle className="w-10 h-10 text-slate-500" />
+                    </div>
+                    <p className="text-xl font-bold text-slate-700 mb-2">No complaints yet</p>
+                    <p className="text-sm text-slate-600 font-medium mb-6">
+                      File your first complaint using the form above.
                     </p>
                     <button
                       onClick={() => setShowForm(true)}

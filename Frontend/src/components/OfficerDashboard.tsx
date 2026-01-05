@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useComplaints } from '../context/ComplaintContext';
 import { useNavigate } from 'react-router-dom';
 import { 
   Shield, FileText, Clock, TrendingUp, CheckCircle2, AlertTriangle,
@@ -18,6 +19,7 @@ import api from '../lib/api';
 
 export const OfficerDashboard: React.FC = () => {
   const { user, getAuthHeaders, token } = useAuth();
+  const { complaints: contextComplaints } = useComplaints();
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
   const [loading, setLoading] = useState(true);
@@ -30,66 +32,23 @@ export const OfficerDashboard: React.FC = () => {
   const [escalationLevel, setEscalationLevel] = useState(1);
   const navigate = useNavigate();
 
-  // Fetch assigned complaints
+  // Auto-refresh polling interval
+  const COMPLAINTS_POLL_INTERVAL = 12000; // 12 seconds
+
+  // Use context complaints and sync to local state
   useEffect(() => {
-    if (user?.email) {
-      fetchAssignedComplaints();
-    }
-  }, [user]);
-
-  const fetchAssignedComplaints = async () => {
-    setLoading(true);
-    try {
-      console.log('fetchAssignedComplaints token present=', !!token, 'token=', token ? token.substring(0,20) + '...' : null);
-      const data = await api.getOfficerComplaints(user?.email || '', token ?? undefined);
-      console.log('Officer complaints raw response:', data);
-
-      // Normalize response shapes: array, { data: [] }, { content: [] }, { items: [] }, or single object
-      let items: any[] = [];
-      if (Array.isArray(data)) items = data;
-      else if (data?.data && Array.isArray(data.data)) items = data.data;
-      else if (data?.content && Array.isArray(data.content)) items = data.content;
-      else if (data?.items && Array.isArray(data.items)) items = data.items;
-      else if (data == null) items = [];
-      else if (typeof data === 'object') items = [data];
-
-      const mapped: Complaint[] = items.map((c: any) => {
-        const rawPriority = c.priority?.toString().trim();
-        const normalizedPriority = rawPriority 
-          ? rawPriority.toLowerCase() === 'high' ? 'high' :
-            rawPriority.toLowerCase() === 'low' ? 'low' : 'medium'
-          : 'medium';
-
-        return {
-          ...c,
-          id: Number(c.id),
-          submittedAt: c.submittedAt || new Date().toISOString(),
-          priority: normalizedPriority as 'low' | 'medium' | 'high',
-          status: (c.status || 'assigned').toString().toLowerCase().replace(/_/g,'-') as ComplaintStatus,
-          notes: c.notes || [],
-          replies: c.replies || [],
-          attachments: c.attachments || [],
-          isAnonymous: c.isAnonymous ?? false,
-          citizenName: c.user?.name || c.submittedBy || 'Citizen',
-        };
-      });
-
-      setComplaints(mapped);
-      console.log('Mapped complaints count:', mapped.length);
-    } catch (err: any) {
-      console.error('Fetch error:', err);
-      // Provide a helpful message depending on the error
-      const message = err?.message || String(err);
-      if (message.includes('email is required')) {
-        alert('Officer email not available. Please log in again.');
-      } else {
-        alert('Failed to fetch assigned complaints. ' + (message || ''));
-      }
+    if (contextComplaints && contextComplaints.length > 0) {
+      console.log('Officer Dashboard: Received complaints from context:', contextComplaints.length);
+      setComplaints(contextComplaints);
+      setLoading(false);
+    } else if (contextComplaints) {
+      console.log('Officer Dashboard: No complaints in context');
       setComplaints([]);
-    } finally {
       setLoading(false);
     }
-  };
+  }, [contextComplaints]);
+
+  // Old local fetch removed - now using context data
 
   // Update status
   const updateStatus = async (id: number, status: ComplaintStatus) => {
@@ -164,9 +123,9 @@ export const OfficerDashboard: React.FC = () => {
         </div>
         {/* Priority breakdown */}
         <div className="grid grid-cols-3 gap-4 mb-8">
-          <StatCard label="Low" value={complaints.filter(c => c.priority === 'low').length} icon={<FileText className="w-5 h-5" />} color="green" />
-          <StatCard label="Medium" value={complaints.filter(c => c.priority === 'medium').length} icon={<FileText className="w-5 h-5" />} color="amber" />
-          <StatCard label="High/Urgent" value={complaints.filter(c => c.priority === 'high' || c.priority === 'urgent').length} icon={<FileText className="w-5 h-5" />} color="red" />
+          <StatCard label="Low" value={complaints.filter(c => c.priority === 'low').length} icon={<FileText className="w-6 h-6" />} color="green" />
+          <StatCard label="Medium" value={complaints.filter(c => c.priority === 'medium').length} icon={<FileText className="w-6 h-6" />} color="amber" />
+          <StatCard label="High/Urgent" value={complaints.filter(c => c.priority === 'high' || c.priority === 'urgent').length} icon={<FileText className="w-6 h-6" />} color="red" />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -178,17 +137,25 @@ export const OfficerDashboard: React.FC = () => {
             </h2>
 
             {loading ? (
-              <div className="text-center py-20 text-slate-500">Loading complaints...</div>
+              <div className="card p-20 text-center shadow-2xl border-2 border-slate-200 bg-gradient-to-br from-white to-slate-50">
+                <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center animate-pulse shadow-xl">
+                  <Loader2 className="w-8 h-8 text-white animate-spin" />
+                </div>
+                <p className="text-lg font-bold text-slate-700 mb-2">Loading your assignments...</p>
+                <p className="text-sm text-slate-500">Please wait a moment</p>
+              </div>
             ) : complaints.length === 0 ? (
-              <div className="card p-16 text-center">
-                <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                <p className="text-lg text-slate-600">No complaints assigned yet.</p>
-                <p className="text-sm text-slate-500 mt-2">Check back later!</p>
+              <div className="card p-20 text-center shadow-2xl border-2 border-slate-200 bg-gradient-to-br from-white to-cyan-50/30">
+                <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-cyan-200 to-blue-200 flex items-center justify-center">
+                  <FileText className="w-10 h-10 text-cyan-600" />
+                </div>
+                <p className="text-xl font-bold text-slate-800 mb-2">No complaints assigned yet</p>
+                <p className="text-sm text-slate-600 font-medium">Check back later for new assignments!</p>
               </div>
             ) : (
               <div>
-                <div className="flex items-center gap-3 mb-4">
-                  <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="input-field w-44">
+                <div className="flex items-center gap-4 mb-6 flex-wrap">
+                  <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="input-field w-48 font-semibold shadow-lg">
                     <option value="all">All Status</option>
                     <option value="pending">Pending</option>
                     <option value="assigned">Assigned</option>
@@ -196,14 +163,14 @@ export const OfficerDashboard: React.FC = () => {
                     <option value="resolved">Resolved</option>
                   </select>
 
-                  <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="input-field w-44">
+                  <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="input-field w-52 font-semibold shadow-lg">
                     <option value="newest">Newest</option>
                     <option value="oldest">Oldest</option>
                     <option value="priority-high">Priority (High → Low)</option>
                     <option value="priority-low">Priority (Low → High)</option>
                   </select>
 
-                  <button onClick={() => { setFilterStatus('all'); setSortBy('newest'); }} className="btn-ghost">Clear</button>
+                  <button onClick={() => { setFilterStatus('all'); setSortBy('newest'); }} className="btn-ghost font-bold">Clear Filters</button>
                 </div>
 
                 <div className="space-y-4">

@@ -9,6 +9,8 @@ import com.resolveit.resloveitbackend.dto.ComplaintDto;
 import com.resolveit.resloveitbackend.enums.ComplaintPriority;
 import com.resolveit.resloveitbackend.enums.ComplaintStatus;
 import com.resolveit.resloveitbackend.exception.ResourceNotFoundException;
+import com.resolveit.resloveitbackend.exception.InvalidStatusException;
+import com.resolveit.resloveitbackend.exception.InvalidPriorityException;
 import com.resolveit.resloveitbackend.mapper.ComplaintMapper;
 import com.resolveit.resloveitbackend.repository.ComplaintRepository;
 import com.resolveit.resloveitbackend.repository.ComplaintNoteRepository;
@@ -136,7 +138,7 @@ public class ComplaintServiceImpl implements ComplaintService {
         try {
             c.setStatus(ComplaintStatus.valueOf(status));
         } catch (IllegalArgumentException ex) {
-            throw new RuntimeException("Invalid status value");
+            throw new InvalidStatusException("Invalid status value: " + status);
         }
         c.setLastUpdatedAt(LocalDateTime.now());
         c.setLastUpdatedBy(requestedBy);
@@ -157,7 +159,7 @@ public class ComplaintServiceImpl implements ComplaintService {
         try {
             c.setPriority(ComplaintPriority.valueOf(priority.toUpperCase()));
         } catch (IllegalArgumentException ex) {
-            throw new RuntimeException("Invalid priority value");
+            throw new InvalidPriorityException("Invalid priority value: " + priority);
         }
         c.setLastUpdatedAt(LocalDateTime.now());
         c.setLastUpdatedBy(requestedBy);

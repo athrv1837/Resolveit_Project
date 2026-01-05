@@ -1,5 +1,6 @@
 package com.resolveit.resloveitbackend.Model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -21,6 +22,7 @@ public class ComplaintReply {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "complaint_id")
+    @JsonIgnoreProperties({"replies", "notes", "attachments", "user", "hibernateLazyInitializer", "handler"})
     private Complaint complaint;
 
     public ComplaintReply() {}

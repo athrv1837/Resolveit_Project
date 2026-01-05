@@ -49,10 +49,24 @@ export const AdminDashboard: React.FC = () => {
   const [officers, setOfficers] = useState<{ id: number; email: string; name: string; department?: string }[]>([]);
   const [analytics, setAnalytics] = useState<any | null>(null);
 
+  // Auto-refresh intervals
+  const COMPLAINTS_POLL_INTERVAL = 15000; // 15 seconds
+  const ANALYTICS_POLL_INTERVAL = 30000; // 30 seconds
+
   // Fetch complaints
   useEffect(() => {
     fetchComplaints();
     fetchAnalytics();
+
+    // Set up polling for complaints
+    const complaintsPoll = setInterval(fetchComplaints, COMPLAINTS_POLL_INTERVAL);
+    const analyticsPoll = setInterval(fetchAnalytics, ANALYTICS_POLL_INTERVAL);
+
+    // Cleanup on unmount
+    return () => {
+      clearInterval(complaintsPoll);
+      clearInterval(analyticsPoll);
+    };
   }, [token]);
 
   const fetchAnalytics = async () => {
@@ -292,7 +306,10 @@ export const AdminDashboard: React.FC = () => {
         </div>
 
         <div className="flex items-center justify-end mb-6">
-          <button onClick={() => { fetchAnalytics(); fetchComplaints(); }} className="btn-ghost">Refresh Analytics</button>
+          <button onClick={() => { fetchAnalytics(); fetchComplaints(); }} className="btn-ghost font-bold flex items-center gap-2 hover:scale-105 transition-transform">
+            <TrendingUp className="w-5 h-5" />
+            Refresh Analytics
+          </button>
         </div>
 
         {/* Charts: workload larger, priority smaller for compact view */}
@@ -386,7 +403,7 @@ export const AdminDashboard: React.FC = () => {
                 <option value="closed">Closed</option>
               </select>
 
-              <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="input-field w-48">
+              <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="input-field w-52 font-semibold shadow-lg">
                 <option value="newest">Newest</option>
                 <option value="oldest">Oldest</option>
                 <option value="priority-high">Priority (High → Low)</option>
@@ -395,13 +412,13 @@ export const AdminDashboard: React.FC = () => {
                 <option value="status-desc">Status Z→A</option>
               </select>
 
-              <button onClick={() => { setFilterStatus('all'); setSortBy('newest'); setSearchTerm(''); }} className="btn-ghost">
-                Clear
+              <button onClick={() => { setFilterStatus('all'); setSortBy('newest'); setSearchTerm(''); }} className="btn-ghost font-bold">
+                Clear Filters
               </button>
 
               <button
                 onClick={() => { fetchPendingOfficerRequests(); setShowOfficerRequestModal(true); }}
-                className="btn-primary whitespace-nowrap"
+                className="btn-primary whitespace-nowrap font-bold flex items-center gap-2 shadow-xl hover:shadow-2xl"
               >
                 <Users className="w-5 h-5" /> Officer Requests
               </button>
@@ -413,11 +430,20 @@ export const AdminDashboard: React.FC = () => {
           {/* List */}
           <div className="lg:col-span-2 space-y-4">
             {loading ? (
-              <div className="text-center py-20">Loading...</div>
+              <div className="card p-20 text-center shadow-2xl border-2 border-slate-200 bg-gradient-to-br from-white to-slate-50">
+                <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center animate-pulse shadow-xl">
+                  <Loader2 className="w-8 h-8 text-white animate-spin" />
+                </div>
+                <p className="text-lg font-bold text-slate-700 mb-2">Loading complaints...</p>
+                <p className="text-sm text-slate-500">Please wait a moment</p>
+              </div>
             ) : visibleComplaints.length === 0 ? (
-              <div className="card p-20 text-center">
-                <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                <p className="text-xl text-slate-500">No complaints found</p>
+              <div className="card p-20 text-center shadow-2xl border-2 border-slate-200 bg-gradient-to-br from-white to-blue-50/30">
+                <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-blue-200 to-cyan-200 flex items-center justify-center">
+                  <FileText className="w-10 h-10 text-blue-600" />
+                </div>
+                <p className="text-xl font-bold text-slate-800 mb-2">No complaints found</p>
+                <p className="text-sm text-slate-600 font-medium">Try adjusting your filters or search term</p>
               </div>
             ) : (
               visibleComplaints.map(c => (

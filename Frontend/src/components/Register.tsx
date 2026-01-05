@@ -127,22 +127,22 @@ export const Register: React.FC<RegisterProps> = ({ onSwitchToLogin }) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-gradient-to-br from-slate-50 via-cyan-50/30 to-blue-50/30">
       {/* Background */}
       <div className="absolute inset-0 -z-10">
-        <div className="absolute top-0 right-1/4 w-96 h-96 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-full blur-3xl"></div>
+        <div className="absolute top-0 right-1/4 w-96 h-96 bg-gradient-to-r from-cyan-500/30 to-blue-500/30 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-gradient-to-r from-blue-500/30 to-cyan-500/30 rounded-full blur-3xl animate-pulse" style={{animationDelay: '1s'}}></div>
       </div>
 
       <div className="w-full max-w-md relative animate-fade-in">
         <div className="card-premium p-8 md:p-10">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-cyan-600 to-blue-600 rounded-2xl mb-6 shadow-2xl glow-cyan">
-              <UserPlus className="w-8 h-8 text-white" />
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-cyan-600 via-cyan-500 to-blue-500 rounded-3xl mb-6 shadow-2xl shadow-cyan-500/40 hover:shadow-cyan-500/60 transition-all duration-300 hover:scale-110 animate-bounce-subtle">
+              <UserPlus className="w-10 h-10 text-white" />
             </div>
-            <h1 className="typography-h3 mb-2 text-gradient">Get Started</h1>
-            <p className="text-slate-600">Create your account to file and track complaints</p>
-            <p className="text-xs text-slate-500 mt-2">(Admin accounts cannot be created manually)</p>
+            <h1 className="typography-h3 mb-3 text-gradient drop-shadow-sm">Get Started</h1>
+            <p className="text-slate-600 font-medium">Create your account to file and track complaints</p>
+            <p className="text-xs text-slate-500 mt-3 font-semibold">(Admin accounts cannot be created manually)</p>
           </div>
 
           {/* Role Selector */}

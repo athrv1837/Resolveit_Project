@@ -13,7 +13,7 @@ export const api = {
       body: JSON.stringify({ email, password }),
     });
     if (!res.ok) throw new Error(await res.text());
-    return handleRes(res);
+    return await handleRes(res);
   },
 
   async register(name: string, email: string, password: string, role: string) {
@@ -23,13 +23,13 @@ export const api = {
       body: JSON.stringify({ name, email, password, role }),
     });
     if (!res.ok) throw new Error(await res.text());
-    return handleRes(res);
+    return await handleRes(res);
   },
 
   async me(token?: string) {
     const res = await fetch(`${API_BASE}/auth/me`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
     if (!res.ok) throw new Error(await res.text());
-    return handleRes(res);
+    return await handleRes(res);
   },
 
   async submitComplaint(data: any, email: string, token?: string) {
@@ -45,7 +45,7 @@ export const api = {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (!res.ok) throw new Error(await res.text());
-      return handleRes(res);
+      return await handleRes(res);
     }
 
     const res = await fetch(`${API_BASE}/complaints/submit?email=${encodeURIComponent(email)}`, {
@@ -54,7 +54,7 @@ export const api = {
       body: JSON.stringify({ title: data.title, description: data.description, category: data.category, isAnonymous: data.isAnonymous, priority: data.priority }),
     });
     if (!res.ok) throw new Error(await res.text());
-    return handleRes(res);
+    return await handleRes(res);
   },
 
   async getUserComplaints(email: string, token?: string) {
@@ -64,13 +64,13 @@ export const api = {
       const body = await res.text();
       throw new Error(body || `Request failed with status ${res.status}`);
     }
-    return handleRes(res);
+    return await handleRes(res);
   },
 
   async getAllComplaints(token?: string) {
     const res = await fetch(`${API_BASE}/complaints`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
     if (!res.ok) throw new Error(await res.text());
-    return handleRes(res);
+    return await handleRes(res);
   },
 
   async assignOfficer(complaintId: number | string, officerEmail: string, token?: string) {
@@ -80,13 +80,13 @@ export const api = {
       body: JSON.stringify({ officerEmail }),
     });
     if (!res.ok) throw new Error(await res.text());
-    return handleRes(res);
+    return await handleRes(res);
   },
 
   async analyticsOverview(token?: string) {
     const res = await fetch(`${API_BASE}/admin/analytics/overview`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
     if (!res.ok) throw new Error(await res.text());
-    return handleRes(res);
+    return await handleRes(res);
   }
   ,
 
@@ -97,14 +97,14 @@ export const api = {
       body: JSON.stringify({ level: String(level), reason, requestedBy }),
     });
     if (!res.ok) throw new Error(await res.text());
-    return handleRes(res);
+    return await handleRes(res);
   }
 ,
 
   async getOfficers(token?: string) {
     const res = await fetch(`${API_BASE}/officers`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
     if (!res.ok) throw new Error(await res.text());
-    return handleRes(res);
+    return await handleRes(res);
   },
 
   async updateComplaintStatus(id: number | string, status: string , requestedBy : string, token?: string) {
@@ -114,7 +114,7 @@ export const api = {
       body: JSON.stringify({ status , requestedBy}),
     });
     if (!res.ok) throw new Error(await res.text());
-    return handleRes(res);
+    return await handleRes(res);
   },
 
   async updateComplaintPriority(id: number | string, priority: string, token?: string) {
@@ -124,7 +124,7 @@ export const api = {
       body: JSON.stringify({ priority }),
     });
     if (!res.ok) throw new Error(await res.text());
-    return handleRes(res);
+    return await handleRes(res);
   },
 
   async addNote(id: number | string, content: string, isPrivate = true, token?: string) {
@@ -134,7 +134,7 @@ export const api = {
       body: JSON.stringify({ content, isPrivate }),
     });
     if (!res.ok) throw new Error(await res.text());
-    return handleRes(res);
+    return await handleRes(res);
   },
 
   async addReply(id: number | string, content: string, isAdminReply = true, token?: string) {
@@ -144,7 +144,7 @@ export const api = {
       body: JSON.stringify({ content, isAdminReply }),
     });
     if (!res.ok) throw new Error(await res.text());
-    return handleRes(res);
+    return await handleRes(res);
   },
 
   async getComplaintById(id: number | string, token?: string) {
@@ -153,19 +153,19 @@ export const api = {
       const txt = await res.text();
       throw new Error(txt || `Request failed with status ${res.status}`);
     }
-    return handleRes(res);
+    return await handleRes(res);
   },
 
   async approveOfficer(id: number | string, token?: string) {
     const res = await fetch(`${API_BASE}/admin/approve/${id}`, { method: 'POST', headers: token ? { Authorization: `Bearer ${token}` } : {} });
     if (!res.ok) throw new Error(await res.text());
-    return handleRes(res);
+    return await handleRes(res);
   },
 
   async rejectOfficer(id: number | string, token?: string) {
     const res = await fetch(`${API_BASE}/admin/reject/${id}`, { method: 'POST', headers: token ? { Authorization: `Bearer ${token}` } : {} });
     if (!res.ok) throw new Error(await res.text());
-    return handleRes(res);
+    return await handleRes(res);
   },
 
   async requestPasswordReset(email: string) {
@@ -178,7 +178,7 @@ export const api = {
       const txt = await res.text();
       throw new Error(txt || `Request failed with status ${res.status}`);
     }
-    return handleRes(res);
+    return await handleRes(res);
   },
 
   async resetPassword(token: string, newPassword: string) {
@@ -191,23 +191,26 @@ export const api = {
       const txt = await res.text();
       throw new Error(txt || `Request failed with status ${res.status}`);
     }
-    return handleRes(res);
+    return await handleRes(res);
   },
 
   async getPendingOfficers(token?: string) {
     const res = await fetch(`${API_BASE}/officers/pending`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
     if (!res.ok) throw new Error(await res.text());
-    return handleRes(res);
+    return await handleRes(res);
   },
 
   async getOfficerComplaints(email: string, token?: string) {
     if (!email || !email.trim()) throw new Error('email is required');
+    console.log('[API] getOfficerComplaints called with email:', email);
     const res = await fetch(`${API_BASE}/officer/complaints?email=${encodeURIComponent(email)}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
     if (!res.ok) {
       const body = await res.text();
       throw new Error(body || `Request failed with status ${res.status}`);
     }
-    return handleRes(res);
+    const result = await handleRes(res);
+    console.log('[API] getOfficerComplaints result:', result);
+    return result;
   },
 };
 

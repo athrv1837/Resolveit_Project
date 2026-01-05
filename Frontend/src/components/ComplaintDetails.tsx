@@ -180,201 +180,211 @@ export const ComplaintDetails: React.FC = () => {
   if (!id) return <div className="p-12">Invalid complaint</div>;
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-50">
+    <div className="flex flex-col min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/40 to-cyan-50/40">
       <Header title={`Complaint #${id}`} subtitle="Complaint Details" icon={<ArrowLeft className="w-5 h-5 text-white" />} />
 
-      <main className="flex-1 container-custom py-8">
-        <button onClick={() => navigate(-1)} className="mb-4 inline-flex items-center gap-2 text-sm text-slate-600 hover:text-slate-800">
+      <main className="flex-1 container-custom py-10">
+        <button onClick={() => navigate(-1)} className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-slate-700 hover:text-blue-600 transition-colors duration-200 hover:translate-x-1 bg-white px-4 py-2.5 rounded-xl shadow-md hover:shadow-lg border-2 border-slate-200 hover:border-blue-300">
           <ArrowLeft className="w-4 h-4" /> Back
         </button>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left: details + replies (full width) */}
-          <div className="lg:col-span-3 space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Left Column: Complaint Details, Description, Attachments */}
+          <div className="space-y-8">
             {complaint ? (
-              <div className="card p-6">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <div className="lg:col-span-2 space-y-6">
-                    <ComplaintCard complaint={complaint} />
+              <>
+                <div className="card p-8 shadow-2xl border-2 border-slate-200/70 hover:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.15)] transition-all duration-300">
+                  <ComplaintCard complaint={complaint} />
+                </div>
 
-                    {/* Admin: assignment card (kept under complaint card) */}
-                    {isAdmin() && (
-                      <div className="mt-4 p-4 bg-white border rounded-md shadow-sm">
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex items-center gap-3">
-                            <div className="rounded-full bg-indigo-50 p-2">
-                              <UserCheck className="w-5 h-5 text-indigo-600" />
+                {/* Admin: assignment card */}
+                {isAdmin() && (
+                  <div className="p-6 bg-gradient-to-br from-indigo-50 to-purple-50/50 border-2 border-indigo-200 rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300">
+                        <div className="flex items-start justify-between mb-5">
+                          <div className="flex items-center gap-4">
+                            <div className="rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-500 p-3 shadow-lg">
+                              <UserCheck className="w-6 h-6 text-white" />
                             </div>
                             <div>
-                              <div className="text-sm font-semibold text-slate-800">Assignment</div>
-                              <div className="text-xs text-slate-500">Assign this complaint to an officer for handling</div>
+                              <div className="text-base font-extrabold text-slate-900">Assignment</div>
+                              <div className="text-sm text-slate-600 font-medium">Assign this complaint to an officer for handling</div>
                             </div>
                           </div>
-                          <div className="text-sm text-slate-600">Current: <span className="font-medium text-slate-800">{complaint?.assignedTo || 'Unassigned'}</span></div>
+                          <div className="text-sm text-slate-700 bg-white px-4 py-2 rounded-xl border-2 border-indigo-200 shadow-md">Current: <span className="font-extrabold text-indigo-700">{complaint?.assignedTo || 'Unassigned'}</span></div>
                         </div>
 
-                        <div className="flex gap-3 items-center">
-                          <select className="flex-grow border rounded p-2 shadow-sm focus:ring-1 focus:ring-indigo-500" value={selectedOfficer || ''} onChange={(e) => setSelectedOfficer(e.target.value)}>
+                        <div className="flex gap-4 items-center">
+                          <select className="flex-grow border-2 border-indigo-300 rounded-xl p-3 shadow-lg focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium bg-white transition-all duration-200" value={selectedOfficer || ''} onChange={(e) => setSelectedOfficer(e.target.value)}>
                             <option value="">-- Select officer --</option>
                             {(officers || []).map((o: any) => (
                               <option key={o.email} value={o.email}>{o.name} — {o.department}</option>
                             ))}
                           </select>
 
-                          <button className="inline-flex items-center gap-2 px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-60" onClick={handleAssign} disabled={loading || !selectedOfficer}>
-                            <UserCheck className="w-4 h-4 text-white" />
+                          <button className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold hover:from-indigo-700 hover:to-purple-700 disabled:opacity-60 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105" onClick={handleAssign} disabled={loading || !selectedOfficer}>
+                            <UserCheck className="w-5 h-5 text-white" />
                             <span className="text-sm">{loading ? 'Assigning...' : 'Assign'}</span>
                           </button>
                         </div>
-                      </div>
-                    )}
+                  </div>
+                )}
 
-                    {/* Description */}
-                    <div className="mt-6">
-                      <p className="text-xs text-slate-600 uppercase font-semibold mb-2">Description</p>
-                      <p className="text-sm text-slate-700 whitespace-pre-wrap bg-slate-50 p-4 rounded-lg">{complaint.description}</p>
+                {/* Description */}
+                <div className="card p-8 shadow-2xl border-2 border-slate-200/70">
+                      <p className="text-xs text-slate-600 uppercase font-extrabold tracking-wider mb-3 flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                        DESCRIPTION
+                      </p>
+                      <p className="text-base text-slate-800 whitespace-pre-wrap bg-gradient-to-br from-slate-50 to-blue-50/30 p-6 rounded-2xl border-2 border-slate-200 shadow-lg font-medium leading-relaxed">{complaint.description}</p>
                     </div>
 
-                    {/* Attachments */}
-                    <div className="mt-4">
-                      <p className="text-xs text-slate-600 uppercase font-semibold mb-2 flex items-center gap-2"><FileImage className="w-4 h-4" /> Attachments</p>
-                      <div className="space-y-2">
+                {/* Attachments */}
+                <div className="card p-8 shadow-2xl border-2 border-slate-200/70">
+                      <p className="text-xs text-slate-600 uppercase font-extrabold tracking-wider mb-3 flex items-center gap-2">
+                        <FileImage className="w-4 h-4 text-blue-600" /> 
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                        ATTACHMENTS
+                      </p>
+                      <div className="space-y-3">
                         {complaint.attachments && complaint.attachments.length > 0 ? (
                           complaint.attachments.map((a, i) => (
-                            <a key={i} href={a} target="_blank" rel="noreferrer" className="block text-sm text-blue-600 hover:underline truncate">{a.split('/').pop() || `Attachment ${i+1}`}</a>
+                            <a key={i} href={a} target="_blank" rel="noreferrer" className="block text-sm font-semibold text-blue-700 hover:text-blue-600 hover:underline truncate bg-blue-50 px-4 py-3 rounded-xl border-2 border-blue-200 hover:border-blue-400 transition-all duration-200 hover:shadow-md">{a.split('/').pop() || `Attachment ${i+1}`}</a>
                           ))
                         ) : (
-                          <div className="text-sm text-slate-500">No attachments</div>
+                          <div className="text-sm text-slate-500 font-medium bg-slate-50 px-4 py-3 rounded-xl border-2 border-slate-200">No attachments</div>
                         )}
                       </div>
                     </div>
 
-                    {/* Reply box */}
-                    <div className="mt-6">
-                      <label className="block text-sm font-medium text-slate-700 mb-2">Post a message</label>
-                      <textarea value={replyContent} onChange={(e) => setReplyContent(e.target.value)} rows={4} className="w-full rounded-md border p-3 resize-none" placeholder="Write your message to the other party..." />
-                      <div className="flex items-center justify-between mt-3">
-                        <div className="text-sm text-slate-500">{(replyContent || '').length}/2000</div>
-                        <div className="flex gap-2">
-                          <button onClick={() => { setReplyContent(''); }} className="btn-ghost" disabled={loading}>Cancel</button>
-                          <button onClick={handleSendReply} disabled={loading || !replyContent.trim()} className="btn-primary">{loading ? 'Sending...' : 'Send'}</button>
-                        </div>
-                      </div>
+                {/* Internal Notes (only officer/admin) */}
+                {(isAdmin() || isOfficer()) && (
+                  <div className="card p-8 shadow-2xl border-2 border-slate-200/70">
+                    <h4 className="font-extrabold text-lg mb-4 tracking-tight text-slate-900">Internal Notes</h4>
+                    <textarea value={noteContent} onChange={e => setNoteContent(e.target.value)} rows={3} className="w-full rounded-2xl border-2 border-purple-300 p-4 resize-none shadow-lg focus:ring-4 focus:ring-purple-500/20 focus:border-purple-500 font-medium transition-all duration-200 bg-purple-50/30" placeholder="Add an internal note..." />
+                    <div className="flex justify-end gap-3 mt-4">
+                      <button onClick={() => setNoteContent('')} className="btn-ghost">Cancel</button>
+                      <button onClick={handleAddNote} className="btn-primary bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700" disabled={loading || !noteContent.trim()}>Save Note</button>
                     </div>
-
-                    {/* Replies list */}
-                    <div className="mt-6">
-                      <h4 className="font-semibold mb-3">Conversation</h4>
-                        <div className="space-y-3 max-h-72 overflow-y-auto">
-                          {(complaint.replies || []).length === 0 ? (
-                            <div className="text-sm text-slate-500">No messages yet</div>
-                          ) : (
-                            (complaint.replies || []).map((r) => (
-                              <div key={r.id} className={`p-3 rounded-lg ${r.isAdminReply ? 'bg-blue-50 border border-blue-200' : 'bg-slate-50 border border-slate-200'}`}>
-                                <p className="font-medium text-slate-800">{r.content}</p>
-                                <div className="text-xs text-slate-500 mt-1">{r.createdBy || (r.isAdminReply ? 'Authority' : 'Citizen')} • {r.createdAt ? new Date(r.createdAt).toLocaleString() : ''}</div>
-                              </div>
-                            ))
-                          )}
-                        </div>
-                      </div>
-
-                    {/* Internal note area (only officer/admin) */}
-                    {(isAdmin() || isOfficer()) && (
-                      <div className="mt-6">
-                        <h4 className="font-semibold mb-3">Internal Notes</h4>
-                        <textarea value={noteContent} onChange={e => setNoteContent(e.target.value)} rows={3} className="w-full rounded-md border p-3 resize-none" placeholder="Add an internal note..." />
-                        <div className="flex justify-end gap-2 mt-3">
-                          <button onClick={() => setNoteContent('')} className="btn-ghost">Cancel</button>
-                          <button onClick={handleAddNote} className="btn-primary" disabled={loading || !noteContent.trim()}>Save Note</button>
-                        </div>
-                        <div className="space-y-2 mt-4 max-h-56 overflow-y-auto">
-                          {(complaint.notes || []).length === 0 ? (
-                            <div className="text-sm text-slate-500">No internal notes</div>
-                          ) : (
-                            (complaint.notes || []).map(n => (
-                              <div key={n.id} className="p-3 bg-purple-50 border border-purple-200 rounded-lg text-xs">
-                                <p className="font-medium text-slate-800">{n.content}</p>
-                                <p className="text-slate-500 mt-1">{n.createdAt ? new Date(n.createdAt).toLocaleString() : ''}</p>
-                              </div>
-                            ))
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="lg:col-span-1 space-y-6">
-                    {/* Citizen timeline */}
-                    {isCitizen() && (
-                      <div className="mt-6 p-4 bg-white border rounded-md shadow-sm">
-                        <h4 className="font-semibold mb-2">Progress</h4>
-                        <div className="space-y-3">
-                          {statusSteps.map((s, idx) => {
-                            const currentIndex = statusSteps.findIndex(st => st.key === (complaint?.status || 'pending'));
-                            const done = idx <= currentIndex;
-                            let date: string | undefined;
-                            if (!complaint) date = undefined;
-                            else if (s.key === 'pending') date = complaint.submittedAt;
-                            else if (s.key === 'assigned') date = complaint.assignedTo ? complaint.lastUpdatedAt : undefined;
-                            else if (s.key === 'in-progress') date = complaint.lastUpdatedAt;
-                            else if (s.key === 'escalated') date = complaint.escalatedAt;
-                            else if (s.key === 'resolved' || s.key === 'closed') date = complaint.lastUpdatedAt;
-
-                            return (
-                              <div key={s.key} className="flex items-start gap-3">
-                                <div className="flex flex-col items-center">
-                                  <div className={`w-6 h-6 rounded-full flex items-center justify-center ${done ? 'bg-green-500 text-white' : 'bg-slate-200 text-slate-600'}`}>
-                                    <span className="text-xs font-semibold">{done ? '✓' : idx + 1}</span>
-                                  </div>
-                                  {idx < statusSteps.length - 1 && (
-                                    <div className={`w-px h-8 ${done ? 'bg-green-500' : 'bg-slate-200'}`} />
-                                  )}
-                                </div>
-                                <div>
-                                  <div className="font-medium text-slate-800">{s.label}</div>
-                                  {date && <div className="text-xs text-slate-500">{new Date(date).toLocaleString()}</div>}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Officer actions */}
-                    {isOfficer() && (
-                      <div className="mt-6 p-4 bg-white border rounded-md shadow-sm">
-                        <h4 className="font-semibold mb-2">Officer Actions</h4>
-                        <div className="space-y-3">
-                          <div className="text-sm text-slate-600">Assigned to: <span className="font-medium">{complaint?.assignedTo || 'Unassigned'}</span></div>
-                          <div>
-                            <label className="text-xs text-slate-500 block mb-1">Update status</label>
-                            <select className="w-full border rounded p-2" value={normalizeStatus(complaint?.status)} onChange={(e) => handleStatusChange(e.target.value)}>
-                              <option value="pending">Pending</option>
-                              <option value="assigned">Assigned</option>
-                              <option value="in-progress">In Progress</option>
-                              <option value="escalated">Escalated</option>
-                              <option value="resolved">Resolved</option>
-                              <option value="closed">Closed</option>
-                            </select>
+                    <div className="space-y-3 mt-6 max-h-72 overflow-y-auto pr-2">
+                      {(complaint.notes || []).length === 0 ? (
+                        <div className="text-sm text-slate-500 font-medium bg-purple-50 px-4 py-6 rounded-2xl border-2 border-purple-200 text-center">No internal notes</div>
+                      ) : (
+                        (complaint.notes || []).map(n => (
+                          <div key={n.id} className="p-5 bg-gradient-to-br from-purple-50 to-indigo-50/50 border-2 border-purple-300 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200">
+                            <p className="font-semibold text-slate-900 leading-relaxed">{n.content}</p>
+                            <p className="text-xs text-slate-600 mt-2 font-semibold">{n.createdAt ? new Date(n.createdAt).toLocaleString() : ''}</p>
                           </div>
-                          <div className="flex justify-end gap-2">
-                            <button className="btn-ghost" disabled={statusUpdateLoading} onClick={() => handleStatusChange('resolved')}>Mark Resolved</button>
-                            <button className="btn-primary" disabled={statusUpdateLoading} onClick={() => handleStatusChange('escalated')}>Escalate</button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                        ))
+                      )}
+                    </div>
                   </div>
-                </div>
-              </div>
+                )}
+              </>
             ) : (
-              <div className="card p-12 text-center">Complaint not found in current list.</div>
+              <div className="card p-16 text-center shadow-2xl border-2 border-slate-200 bg-gradient-to-br from-white to-slate-50">
+                <p className="text-lg font-bold text-slate-700">Complaint not found in current list.</p>
+              </div>
             )}
           </div>
 
+          {/* Right Column: Timeline, Actions, Conversation */}
+          <div className="space-y-8">
+            {complaint && (
+              <>
+                {/* Citizen Timeline */}
+                {isCitizen() && (
+                  <div className="card p-8 shadow-2xl border-2 border-slate-200/70">
+                    <h4 className="font-extrabold text-lg mb-5 tracking-tight text-slate-900">Progress</h4>
+                    <div className="space-y-4">
+                      {statusSteps.map((s, idx) => {
+                        const currentIndex = statusSteps.findIndex(st => st.key === (complaint?.status || 'pending'));
+                        const done = idx <= currentIndex;
+                        let date: string | undefined;
+                        if (!complaint) date = undefined;
+                        else if (s.key === 'pending') date = complaint.submittedAt;
+                        else if (s.key === 'assigned') date = complaint.assignedTo ? complaint.lastUpdatedAt : undefined;
+                        else if (s.key === 'in-progress') date = complaint.lastUpdatedAt;
+                        else if (s.key === 'escalated') date = complaint.escalatedAt;
+                        else if (s.key === 'resolved' || s.key === 'closed') date = complaint.lastUpdatedAt;
 
+                        return (
+                          <div key={s.key} className="flex items-start gap-4">
+                            <div className="flex flex-col items-center">
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 ${done ? 'bg-gradient-to-br from-green-500 to-emerald-500 text-white shadow-green-500/40' : 'bg-slate-200 text-slate-600'}`}>
+                                <span className="text-sm font-extrabold">{done ? '✓' : idx + 1}</span>
+                              </div>
+                              {idx < statusSteps.length - 1 && (
+                                <div className={`w-0.5 h-10 transition-all duration-300 ${done ? 'bg-gradient-to-b from-green-500 to-emerald-500' : 'bg-slate-200'}`} />
+                              )}
+                            </div>
+                            <div>
+                              <div className="font-bold text-slate-900">{s.label}</div>
+                              {date && <div className="text-xs text-slate-600 mt-1 font-semibold">{new Date(date).toLocaleString()}</div>}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Officer Actions Panel */}
+                {isOfficer() && (
+                  <div className="card p-8 shadow-2xl border-2 border-slate-200/70">
+                    <h4 className="font-extrabold text-lg mb-5 tracking-tight text-slate-900">Officer Actions</h4>
+                    <div className="space-y-5">
+                      <div className="text-sm text-slate-700 font-medium bg-white px-4 py-3 rounded-xl border-2 border-blue-200 shadow-md">Assigned to: <span className="font-extrabold text-blue-700">{complaint?.assignedTo || 'Unassigned'}</span></div>
+                      <div>
+                        <label className="text-xs text-slate-600 block mb-2 font-extrabold tracking-wider uppercase">Update status</label>
+                        <select className="w-full border-2 border-blue-300 rounded-xl p-3 shadow-lg focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 font-semibold bg-white transition-all duration-200" value={normalizeStatus(complaint?.status)} onChange={(e) => handleStatusChange(e.target.value)}>
+                          <option value="pending">Pending</option>
+                          <option value="assigned">Assigned</option>
+                          <option value="in-progress">In Progress</option>
+                          <option value="escalated">Escalated</option>
+                          <option value="resolved">Resolved</option>
+                          <option value="closed">Closed</option>
+                        </select>
+                      </div>
+                      <div className="flex justify-end gap-3 pt-2">
+                        <button className="btn-ghost hover:bg-green-50 hover:text-green-700 border-2 border-transparent hover:border-green-300" disabled={statusUpdateLoading} onClick={() => handleStatusChange('resolved')}>Mark Resolved</button>
+                        <button className="btn-primary" disabled={statusUpdateLoading} onClick={() => handleStatusChange('escalated')}>Escalate</button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Conversation Section */}
+                <div className="card p-8 shadow-2xl border-2 border-slate-200/70">
+                  <h4 className="font-extrabold text-lg mb-4 tracking-tight text-slate-900">Conversation</h4>
+                  <div className="space-y-4 max-h-96 overflow-y-auto pr-2 mb-6">
+                    {(complaint.replies || []).length === 0 ? (
+                      <div className="text-sm text-slate-500 font-medium bg-slate-50 px-4 py-8 rounded-2xl border-2 border-slate-200 text-center">No messages yet</div>
+                    ) : (
+                      (complaint.replies || []).map((r) => (
+                        <div key={r.id} className={`p-5 rounded-2xl shadow-lg border-2 transition-all duration-200 hover:shadow-xl ${r.isAdminReply ? 'bg-gradient-to-br from-blue-50 to-cyan-50/50 border-blue-300 hover:border-blue-400' : 'bg-gradient-to-br from-slate-50 to-slate-100/50 border-slate-300 hover:border-slate-400'}`}>
+                          <p className="font-semibold text-slate-900 leading-relaxed">{r.content}</p>
+                          <div className="text-xs text-slate-600 mt-2 font-semibold">{r.createdBy || (r.isAdminReply ? 'Authority' : 'Citizen')} • {r.createdAt ? new Date(r.createdAt).toLocaleString() : ''}</div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Reply Input */}
+                  <div className="border-t-2 border-slate-200 pt-6">
+                    <label className="block text-sm font-extrabold text-slate-800 mb-3 tracking-wide">Post a message</label>
+                    <textarea value={replyContent} onChange={(e) => setReplyContent(e.target.value)} rows={4} className="w-full rounded-2xl border-2 border-slate-300 p-4 resize-none shadow-lg focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 font-medium transition-all duration-200" placeholder="Write your message to the other party..." />
+                    <div className="flex items-center justify-between mt-4">
+                      <div className="text-sm text-slate-500 font-semibold">{(replyContent || '').length}/2000</div>
+                      <div className="flex gap-3">
+                        <button onClick={() => { setReplyContent(''); }} className="btn-ghost" disabled={loading}>Cancel</button>
+                        <button onClick={handleSendReply} disabled={loading || !replyContent.trim()} className="btn-primary">{loading ? 'Sending...' : 'Send'}</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </main>
 

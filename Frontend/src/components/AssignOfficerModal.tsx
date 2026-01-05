@@ -54,44 +54,50 @@ export const AssignOfficerModal: React.FC<AssignOfficerModalProps> = ({ complain
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="card p-8 max-w-md w-full animate-slide-in-up relative">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade-in">
+      <div className="card-premium p-10 max-w-lg w-full animate-slide-in-up relative shadow-2xl border-2 border-cyan-200/50">
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-slate-500 hover:text-slate-700"
+          className="absolute top-5 right-5 text-slate-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-lg transition-all duration-200"
         >
           <X className="w-6 h-6" />
         </button>
 
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-cyan-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <UserCheck className="w-10 h-10 text-cyan-600" />
+        <div className="text-center mb-10">
+          <div className="w-20 h-20 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-xl">
+            <UserCheck className="w-10 h-10 text-white" />
           </div>
-          <h2 className="text-2xl font-bold text-slate-900">Assign Officer</h2>
-          <p className="text-slate-600 mt-2">Complaint ID: #{complaintId}</p>
+          <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Assign Officer</h2>
+          <p className="text-slate-600 mt-3 font-semibold">Complaint ID: <span className="font-mono text-cyan-600">#{complaintId}</span></p>
         </div>
 
         {/* Officer Dropdown */}
         {loading ? (
-          <div className="text-center py-12">
-            <Loader2 className="w-12 h-12 text-cyan-600 animate-spin mx-auto" />
+          <div className="text-center py-16 bg-gradient-to-br from-cyan-50 to-blue-50 rounded-2xl border-2 border-cyan-200">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center shadow-lg animate-pulse">
+              <Loader2 className="w-8 h-8 text-white animate-spin" />
+            </div>
+            <p className="text-sm font-bold text-slate-700">Loading officers...</p>
           </div>
         ) : success ? (
-          <div className="text-center py-12">
-            <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4 animate-bounce" />
-            <p className="text-xl font-semibold text-green-600">Officer Assigned Successfully!</p>
+          <div className="text-center py-16 bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl border-2 border-green-200">
+            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center shadow-xl">
+              <CheckCircle2 className="w-10 h-10 text-white animate-bounce" />
+            </div>
+            <p className="text-2xl font-extrabold text-green-700 mb-2">Success!</p>
+            <p className="text-sm font-semibold text-green-600">Officer Assigned Successfully</p>
           </div>
         ) : (
           <>
-            <label className="text-sm font-semibold text-slate-700 mb-3 block">
+            <label className="text-sm font-extrabold text-slate-800 mb-4 block tracking-wide uppercase">
               Select Officer
             </label>
             <select
               value={selectedOfficer}
               onChange={(e) => setSelectedOfficer(e.target.value)}
-              className="input-field w-full text-base py-3"
+              className="input-field w-full text-base py-4 font-semibold shadow-lg"
             >
               <option value="">Choose an officer...</option>
               {officers.map((officer) => (
@@ -102,10 +108,12 @@ export const AssignOfficerModal: React.FC<AssignOfficerModalProps> = ({ complain
             </select>
 
             {officers.length === 0 && (
-              <p className="text-amber-600 text-sm mt-3 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4" />
-                No approved officers found. Approve officers first.
-              </p>
+              <div className="mt-4 p-4 bg-amber-50 border-2 border-amber-300 rounded-xl flex items-center gap-3\">
+                <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0" />
+                <p className="text-amber-800 text-sm font-semibold">
+                  No approved officers found. Please approve officers first.
+                </p>
+              </div>
             )}
 
             {/* Assign Button */}
@@ -113,7 +121,7 @@ export const AssignOfficerModal: React.FC<AssignOfficerModalProps> = ({ complain
               <button
                 onClick={handleAssign}
                 disabled={!selectedOfficer || assigning}
-                className="flex-1 btn-primary py-4 text-lg font-bold flex items-center justify-center gap-3 disabled:opacity-60"
+                className="flex-1 btn-primary py-5 text-lg font-extrabold flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed shadow-xl hover:shadow-2xl"
               >
                 {assigning ? (
                   <Loader2 className="w-6 h-6 animate-spin" />
@@ -124,7 +132,7 @@ export const AssignOfficerModal: React.FC<AssignOfficerModalProps> = ({ complain
               </button>
               <button
                 onClick={onClose}
-                className="flex-1 btn-ghost py-4 text-lg"
+                className="flex-1 btn-ghost py-5 text-lg font-bold"
               >
                 Cancel
               </button>

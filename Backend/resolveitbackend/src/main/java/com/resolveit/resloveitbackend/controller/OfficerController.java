@@ -95,18 +95,29 @@ public class OfficerController {
     @GetMapping("/officer/complaints")
     public ResponseEntity<List<Complaint>> getAssignedComplaints(@RequestParam String email) {
         if (email == null || email.isEmpty()) {
+            System.out.println("[Officer Complaints] Email parameter is empty");
             return ResponseEntity.badRequest().body(null);
         }
 
+        System.out.println("[Officer Complaints] Fetching complaints for email: " + email);
+        
         // Don't fail if officer is not found in officer table; return empty list so frontend handles it gracefully
         List<Complaint> assignedComplaints = complaintRepository.findByAssignedTo(email);
+        
+        System.out.println("[Officer Complaints] Query result: " + (assignedComplaints == null ? "null" : assignedComplaints.size() + " complaints"));
+        
         if (assignedComplaints == null || assignedComplaints.isEmpty()) {
             // log for diagnostics
-            System.out.println("No complaints found assigned to: " + email);
+            System.out.println("[Officer Complaints] No complaints found assigned to: " + email);
+            
+            // DEBUG: Check all complaints in database
+            long totalComplaints = complaintRepository.count();
+            System.out.println("[Officer Complaints] Total complaints in DB: " + totalComplaints);
+            
             return ResponseEntity.ok(java.util.Collections.emptyList());
         }
 
-        System.out.println("Found " + assignedComplaints.size() + " complaints for " + email);
+        System.out.println("[Officer Complaints] Found " + assignedComplaints.size() + " complaints for " + email);
         return ResponseEntity.ok(assignedComplaints);
     }
 }

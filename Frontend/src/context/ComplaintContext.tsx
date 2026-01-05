@@ -69,21 +69,55 @@ export const ComplaintProvider: React.FC<{ children: ReactNode }> = ({ children 
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [officers, setOfficers] = useState<Officer[]>([]);
 
+  // Polling intervals (in milliseconds)
+  const COMPLAINTS_POLL_INTERVAL = 10000; // 10 seconds
+  const OFFICERS_POLL_INTERVAL = 30000; // 30 seconds
+
   const fetchComplaints = async () => {
     try {
       console.log('fetchComplaints: user=', user?.email, 'role=', user?.role, 'tokenPresent=', !!token);
       let data;
-      if (user?.role === 'admin' || user?.role === 'officer') {
+      if (user?.role === 'admin') {
+        // Admin gets all complaints
+        console.log('Fetching ALL complaints (admin)');
         data = await api.getAllComplaints(token ?? undefined);
-      } else {
+      } else if (user?.role === 'officer') {
+        // Officer gets only assigned complaints
         if (!user?.email) {
+          console.warn('Officer email not available');
           setComplaints([]);
           return;
         }
+        console.log('Fetching officer complaints for:', user.email);
+        data = await api.getOfficerComplaints(user.email, token ?? undefined);
+        console.log('Officer complaints raw data:', data);
+      } else {
+        // Citizen gets only their own complaints
+        if (!user?.email) {
+          console.warn('Citizen email not available');
+          setComplaints([]);
+          return;
+        }
+        console.log('Fetching citizen complaints for:', user.email);
         data = await api.getUserComplaints(user.email, token ?? undefined);
       }
 
-      const list = Array.isArray(data) ? data.map(normalizeComplaint) : [];
+      console.log('Data received from API:', data);
+      console.log('Is data an array?', Array.isArray(data), 'Type:', typeof data);
+      
+      const list = Array.isArray(data) ? data.map((complaint, idx) => {
+        try {
+          const normalized = normalizeComplaint(complaint);
+          console.log(`✓ Complaint ${idx} normalized successfully:`, normalized.id);
+          return normalized;
+        } catch (err) {
+          console.error(`✗ Error normalizing complaint ${idx}:`, complaint, err);
+          return null;
+        }
+      }).filter(c => c !== null) : [];
+      
+      console.log('Normalized complaints count:', list.length);
+      console.log('Final complaints list:', list);
       setComplaints(list);
     } catch (err) {
       console.error('Error fetching complaints:', err);
@@ -106,7 +140,26 @@ export const ComplaintProvider: React.FC<{ children: ReactNode }> = ({ children 
     }
   };
 
-  useEffect(() => { fetchComplaints(); fetchOfficers(); }, [user, token]);
+  // Initial fetch + Setup polling
+  useEffect(() => { 
+    fetchComplaints();
+    fetchOfficers();
+
+    // Set up polling for complaints
+    const complaintsPollInterval = setInterval(fetchComplaints, COMPLAINTS_POLL_INTERVAL);
+
+    // Set up polling for officers (only if admin)
+    let officersPollInterval: NodeJS.Timeout | null = null;
+    if (user?.role === 'admin') {
+      officersPollInterval = setInterval(fetchOfficers, OFFICERS_POLL_INTERVAL);
+    }
+
+    // Cleanup intervals on unmount or when user/token changes
+    return () => {
+      clearInterval(complaintsPollInterval);
+      if (officersPollInterval) clearInterval(officersPollInterval);
+    };
+  }, [user, token]);
 
   const addComplaint = async (data: Omit<Complaint, 'id' | 'status' | 'priority' | 'submittedAt' | 'notes' | 'replies'> & { files?: File[] }) => {
     try {
@@ -131,6 +184,8 @@ export const ComplaintProvider: React.FC<{ children: ReactNode }> = ({ children 
         const normalized = normalizeComplaint(updated);
         setComplaints(prev => prev.map(c => (c.id === normalized.id ? normalized : c)));
       }
+      // Refresh all complaints to sync with backend
+      fetchComplaints();
     } catch (err) {
       console.error('Failed to update status:', err);
       alert('Failed to update status');
@@ -147,6 +202,8 @@ export const ComplaintProvider: React.FC<{ children: ReactNode }> = ({ children 
         const normalized = normalizeComplaint(updated);
         setComplaints(prev => prev.map(c => (c.id === normalized.id ? normalized : c)));
       }
+      // Refresh all complaints to sync with backend
+      fetchComplaints();
     } catch (err) {
       console.error('Failed to update priority:', err);
       alert('Failed to update priority');
@@ -161,9 +218,13 @@ export const ComplaintProvider: React.FC<{ children: ReactNode }> = ({ children 
         const normalized = normalizeComplaint(updated);
         setComplaints(prev => prev.map(c => (c.id === normalized.id ? normalized : c)));
       }
+      // Refresh all complaints and officers to sync with backend
+      fetchComplaints();
+      fetchOfficers();
     } catch (err) {
       console.error('Error assigning complaint:', err);
       alert('Failed to assign complaint');
+      fetchComplaints();
     }
   };
 
@@ -171,6 +232,8 @@ export const ComplaintProvider: React.FC<{ children: ReactNode }> = ({ children 
     try {
       const created = await api.addNote(complaintId, note.content, note.isPrivate, token ?? undefined);
       setComplaints(prev => prev.map(c => (c.id === complaintId ? { ...c, notes: [...c.notes, created as Note] } : c)));
+      // Refresh to ensure sync with backend
+      fetchComplaints();
     } catch (err) {
       console.error('Error adding note:', err);
       alert('Failed to add note');
@@ -181,6 +244,8 @@ export const ComplaintProvider: React.FC<{ children: ReactNode }> = ({ children 
     try {
       const created = await api.addReply(complaintId, reply.content, reply.isAdminReply ?? true, token ?? undefined);
       setComplaints(prev => prev.map(c => (c.id === complaintId ? { ...c, replies: [...c.replies, created as Reply] } : c)));
+      // Refresh to ensure sync with backend
+      fetchComplaints();
     } catch (err) {
       console.error('Error adding reply:', err);
       alert('Failed to add reply');

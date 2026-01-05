@@ -20,6 +20,10 @@ import java.util.UUID;
 import com.resolveit.resloveitbackend.Model.PasswordResetToken;
 import com.resolveit.resloveitbackend.repository.PasswordResetTokenRepository;
 import com.resolveit.resloveitbackend.service.EmailService;
+import com.resolveit.resloveitbackend.exception.InvalidCredentialsException;
+import com.resolveit.resloveitbackend.exception.EmailAlreadyRegisteredException;
+import com.resolveit.resloveitbackend.exception.PendingApprovalException;
+import com.resolveit.resloveitbackend.exception.ResourceNotFoundException;
 
 @Service
 public class AuthServiceImpl implements AuthService {
@@ -60,7 +64,7 @@ public class AuthServiceImpl implements AuthService {
                 Officer officer = officerOpt.get();
 
                 if (!passwordEncoder.matches(rawPassword, officer.getPassword())) {
-                    throw new RuntimeException("Invalid password. Please try again.");
+                    throw new InvalidCredentialsException("Invalid password. Please try again.");
                 }
 
                 String token = jwtUtil.generateToken(officer.getEmail(), "ROLE_OFFICER");
@@ -73,19 +77,19 @@ public class AuthServiceImpl implements AuthService {
                 );
             }
 
-            throw new RuntimeException("No user found with this email. Please register first.");
+            throw new ResourceNotFoundException("No user found with this email. Please register first.");
         }
 
         User user = optionalUser.get();
 
         if (!passwordEncoder.matches(rawPassword, user.getPassword())) {
-            throw new RuntimeException("Invalid password. Please try again.");
+            throw new InvalidCredentialsException("Invalid password. Please try again.");
         }
 
         if (user.getRole() == Role.ROLE_OFFICER) {
             boolean approved = officerRepository.findByEmail(user.getEmail()).isPresent();
             if (!approved) {
-                throw new RuntimeException(
+                throw new PendingApprovalException(
                         "Your officer account is pending admin approval. Please wait until approved."
                 );
             }
@@ -104,7 +108,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public AuthResponse register(RegisterRequest req) {
         if (userRepository.existsByEmail(req.getEmail())) {
-            throw new RuntimeException("This email is already registered. Please use a different email.");
+            throw new EmailAlreadyRegisteredException("This email is already registered. Please use a different email.");
         }
 
         Role role;
@@ -122,7 +126,7 @@ public class AuthServiceImpl implements AuthService {
 
         if (role == Role.ROLE_OFFICER) {
             if (pendingOfficerRepository.findByEmail(req.getEmail()).isPresent()) {
-                throw new RuntimeException("Your officer registration is already pending approval.");
+                throw new PendingApprovalException("Your officer registration is already pending approval.");
             }
 
             PendingOfficer pending = PendingOfficer.builder()
@@ -134,7 +138,7 @@ public class AuthServiceImpl implements AuthService {
                     .build();
 
             pendingOfficerRepository.save(pending);
-            throw new RuntimeException(
+            throw new PendingApprovalException(
                     "Officer registration submitted for admin approval. You cannot log in yet."
             );
         }
