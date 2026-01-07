@@ -28,7 +28,7 @@ export const CitizenDashboard: React.FC = () => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("Infrastructure");
-  const [attachments, setAttachments] = useState<string[]>([]);
+  const [attachments, setAttachments] = useState<File[]>([]);
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -95,42 +95,85 @@ export const CitizenDashboard: React.FC = () => {
     if (!user?.email) return;
 
     setLoading(true);
-    const complaintData = {
-      title,
-      description,
-      category,
-      isAnonymous,
-    };
 
     try {
-      const res = await fetch(
-        `${API_BASE}/complaints/submit?email=${user.email}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...getAuthHeaders(), // ✅ attach token here too
-          },
-          body: JSON.stringify(complaintData),
+      // If there are attachments, use the multipart endpoint
+      if (attachments.length > 0) {
+        const formData = new FormData();
+        const complaintJson = {
+          title,
+          description,
+          category,
+          isAnonymous,
+        };
+        formData.append('data', new Blob([JSON.stringify(complaintJson)], { type: 'application/json' }));
+        
+        // Append all files
+        attachments.forEach(file => {
+          formData.append('files', file);
+        });
+
+        const res = await fetch(
+          `${API_BASE}/complaints/submit-with-files?email=${user.email}`,
+          {
+            method: "POST",
+            body: formData,
+            headers: getAuthHeaders(),
+          }
+        );
+
+        if (res.ok) {
+          alert("Complaint submitted successfully with attachments!");
+          setTitle("");
+          setDescription("");
+          setCategory("Infrastructure");
+          setIsAnonymous(false);
+          setAttachments([]);
+          setShowForm(false);
+
+          setTimeout(() => {
+            fetchComplaints();
+          }, 400);
+        } else {
+          const err = await res.text();
+          alert(`Failed to submit complaint: ${err}`);
         }
-      );
-
-      if (res.ok) {
-        alert("Complaint submitted successfully!");
-        // ✅ Reset form
-        setTitle("");
-        setDescription("");
-        setCategory("Infrastructure");
-        setIsAnonymous(false);
-        setAttachments([]);
-        setShowForm(false);
-
-        // ✅ Refresh complaint list after submission
-        setTimeout(() => {
-          fetchComplaints();
-        }, 400);
       } else {
-        alert("Failed to submit complaint. Try again.");
+        // No attachments - use regular endpoint
+        const complaintData = {
+          title,
+          description,
+          category,
+          isAnonymous,
+        };
+
+        const res = await fetch(
+          `${API_BASE}/complaints/submit?email=${user.email}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...getAuthHeaders(),
+            },
+            body: JSON.stringify(complaintData),
+          }
+        );
+
+        if (res.ok) {
+          alert("Complaint submitted successfully!");
+          setTitle("");
+          setDescription("");
+          setCategory("Infrastructure");
+          setIsAnonymous(false);
+          setAttachments([]);
+          setShowForm(false);
+
+          setTimeout(() => {
+            fetchComplaints();
+          }, 400);
+        } else {
+          alert("Failed to submit complaint. Try again.");
+        }
       }
     } catch (error) {
       console.error("Error submitting complaint:", error);
@@ -140,12 +183,12 @@ export const CitizenDashboard: React.FC = () => {
     }
   };
 
-  // ✅ File upload handler (for future feature)
+  // ✅ File upload handler - stores actual File objects
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files) {
-      const fileNames = Array.from(files).map((file) => file.name);
-      setAttachments((prev) => [...prev, ...fileNames]);
+      const fileList = Array.from(files);
+      setAttachments((prev) => [...prev, ...fileList]);
     }
   };
 
@@ -289,7 +332,7 @@ export const CitizenDashboard: React.FC = () => {
                               key={index}
                               className="flex items-center justify-between bg-blue-50 p-2 rounded-lg"
                             >
-                              <span className="text-sm text-slate-700">{file}</span>
+                              <span className="text-sm text-slate-700">{file.name} ({(file.size / 1024).toFixed(2)} KB)</span>
                               <button
                                 type="button"
                                 onClick={() => removeAttachment(index)}

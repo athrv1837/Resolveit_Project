@@ -6,7 +6,7 @@ import { Complaint } from '../types';
 import { Header } from './shared/Header';
 import { Footer } from './shared/Footer';
 import { ComplaintCard } from './shared/ComplaintCard';
-import { FileImage, ArrowLeft, UserCheck } from 'lucide-react';
+import { FileImage, ArrowLeft, UserCheck, X, Download, Eye, FileText, Music, Play } from 'lucide-react';
 
 const statusSteps = [
   { key: 'pending', label: 'Submitted' },
@@ -16,6 +16,32 @@ const statusSteps = [
   { key: 'resolved', label: 'Resolved' },
   { key: 'closed', label: 'Closed' },
 ];
+
+// Utility to detect file type
+const getFileType = (fileName: string): string => {
+  const ext = fileName.split('.').pop()?.toLowerCase() || '';
+  const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'];
+  const videoExts = ['mp4', 'webm', 'mov', 'avi', 'mkv'];
+  const audioExts = ['mp3', 'wav', 'ogg', 'm4a', 'flac'];
+  const docExts = ['pdf', 'doc', 'docx', 'txt', 'xls', 'xlsx', 'ppt', 'pptx'];
+  
+  if (imageExts.includes(ext)) return 'image';
+  if (videoExts.includes(ext)) return 'video';
+  if (audioExts.includes(ext)) return 'audio';
+  if (docExts.includes(ext)) return 'document';
+  return 'file';
+};
+
+// Get icon for file type
+const getFileIcon = (fileName: string) => {
+  const type = getFileType(fileName);
+  switch (type) {
+    case 'image': return <FileImage className="w-5 h-5 text-blue-500" />;
+    case 'video': return <Play className="w-5 h-5 text-purple-500" />;
+    case 'audio': return <Music className="w-5 h-5 text-green-500" />;
+    default: return <FileText className="w-5 h-5 text-slate-500" />;
+  }
+};
 
 export const ComplaintDetails: React.FC = () => {
   const { id } = useParams();
@@ -30,6 +56,7 @@ export const ComplaintDetails: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [replyContent, setReplyContent] = useState('');
   const [noteContent, setNoteContent] = useState('');
+  const [selectedAttachment, setSelectedAttachment] = useState<string | null>(null);
 
   // role-specific UI state
   const [selectedOfficer, setSelectedOfficer] = useState<string | undefined>(undefined);
@@ -240,16 +267,44 @@ export const ComplaintDetails: React.FC = () => {
 
                 {/* Attachments */}
                 <div className="card p-8 shadow-2xl border-2 border-slate-200/70">
-                      <p className="text-xs text-slate-600 uppercase font-extrabold tracking-wider mb-3 flex items-center gap-2">
+                      <p className="text-xs text-slate-600 uppercase font-extrabold tracking-wider mb-4 flex items-center gap-2">
                         <FileImage className="w-4 h-4 text-blue-600" /> 
                         <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
                         ATTACHMENTS
                       </p>
                       <div className="space-y-3">
                         {complaint.attachments && complaint.attachments.length > 0 ? (
-                          complaint.attachments.map((a, i) => (
-                            <a key={i} href={a} target="_blank" rel="noreferrer" className="block text-sm font-semibold text-blue-700 hover:text-blue-600 hover:underline truncate bg-blue-50 px-4 py-3 rounded-xl border-2 border-blue-200 hover:border-blue-400 transition-all duration-200 hover:shadow-md">{a.split('/').pop() || `Attachment ${i+1}`}</a>
-                          ))
+                          complaint.attachments.map((a, i) => {
+                            const fileName = a.split('/').pop() || `Attachment ${i+1}`;
+                            const fileType = getFileType(fileName);
+                            return (
+                              <div key={i} className="flex items-center gap-3 bg-gradient-to-r from-blue-50 to-cyan-50 px-4 py-3 rounded-xl border-2 border-blue-200 hover:border-blue-400 transition-all duration-200 group">
+                                <div className="flex-shrink-0">
+                                  {getFileIcon(fileName)}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <a href={a} download className="block text-sm font-semibold text-blue-700 hover:text-blue-600 truncate group-hover:underline">
+                                    {fileName}
+                                  </a>
+                                  <p className="text-xs text-slate-600 font-medium capitalize">{fileType}</p>
+                                </div>
+                                <div className="flex gap-2 flex-shrink-0">
+                                  {fileType === 'image' && (
+                                    <button
+                                      onClick={() => setSelectedAttachment(a)}
+                                      className="p-2 hover:bg-blue-200 rounded-lg transition-colors text-blue-700 hover:text-blue-900"
+                                      title="Preview image"
+                                    >
+                                      <Eye className="w-5 h-5" />
+                                    </button>
+                                  )}
+                                  <a href={a} download className="p-2 hover:bg-blue-200 rounded-lg transition-colors text-blue-700 hover:text-blue-900" title="Download">
+                                    <Download className="w-5 h-5" />
+                                  </a>
+                                </div>
+                              </div>
+                            );
+                          })
                         ) : (
                           <div className="text-sm text-slate-500 font-medium bg-slate-50 px-4 py-3 rounded-xl border-2 border-slate-200">No attachments</div>
                         )}
@@ -387,6 +442,66 @@ export const ComplaintDetails: React.FC = () => {
           </div>
         </div>
       </main>
+
+      {/* Image Preview Modal */}
+      {selectedAttachment && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl max-h-[90vh] overflow-hidden flex flex-col animate-slideInUp">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b-2 border-slate-200 bg-gradient-to-r from-slate-50 to-blue-50">
+              <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                <Eye className="w-5 h-5 text-blue-600" />
+                Attachment Preview
+              </h3>
+              <button
+                onClick={() => setSelectedAttachment(null)}
+                className="p-2 hover:bg-slate-200 rounded-lg transition-colors"
+              >
+                <X className="w-6 h-6 text-slate-600" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-auto flex items-center justify-center p-6 bg-slate-50">
+              {getFileType(selectedAttachment.split('/').pop() || '') === 'image' ? (
+                <img
+                  src={selectedAttachment}
+                  alt="Attachment preview"
+                  className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
+                />
+              ) : (
+                <div className="text-center">
+                  <FileText className="w-16 h-16 text-slate-400 mx-auto mb-4" />
+                  <p className="text-slate-600 font-medium">Preview not available for this file type</p>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 border-t-2 border-slate-200 bg-slate-50 flex items-center justify-between">
+              <div className="text-sm text-slate-600 font-medium">
+                {selectedAttachment.split('/').pop()}
+              </div>
+              <div className="flex gap-3">
+                <a
+                  href={selectedAttachment}
+                  download
+                  className="px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg font-semibold hover:from-blue-700 hover:to-cyan-700 transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-xl"
+                >
+                  <Download className="w-5 h-5" />
+                  Download
+                </a>
+                <button
+                  onClick={() => setSelectedAttachment(null)}
+                  className="px-4 py-2 bg-slate-200 text-slate-900 rounded-lg font-semibold hover:bg-slate-300 transition-all duration-200"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Footer />
     </div>

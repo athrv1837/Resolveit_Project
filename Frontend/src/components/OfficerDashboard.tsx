@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Shield, FileText, Clock, TrendingUp, CheckCircle2, AlertTriangle,
   User, Calendar, FileImage, MessageSquare, FileText as NoteIcon,
-  UserCheck
+  UserCheck, Loader2
 } from 'lucide-react';
 import { Header } from './shared/Header';
 import { Footer } from './shared/Footer';

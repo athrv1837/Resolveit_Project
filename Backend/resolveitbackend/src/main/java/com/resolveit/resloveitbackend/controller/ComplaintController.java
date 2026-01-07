@@ -4,6 +4,7 @@ import com.resolveit.resloveitbackend.Model.Complaint;
 import com.resolveit.resloveitbackend.dto.ComplaintRequest;
 import com.resolveit.resloveitbackend.dto.StatusUpdateDto;
 import com.resolveit.resloveitbackend.dto.ComplaintDto;
+import com.resolveit.resloveitbackend.service.CloudinaryService;
 
 import com.resolveit.resloveitbackend.service.ComplaintService;
 import org.springframework.web.multipart.MultipartFile;
@@ -29,6 +30,9 @@ public class ComplaintController {
 
     @Autowired
     private ComplaintService complaintService;
+
+    @Autowired
+    private CloudinaryService cloudinaryService;
 
     private final Path uploadRoot = Paths.get("uploads/complaints");
 
@@ -62,22 +66,16 @@ public class ComplaintController {
         complaint.setCategory(request.getCategory());
         complaint.setIsAnonymous(request.getIsAnonymous());
 
-        List<String> savedNames = new ArrayList<>();
-        if (files != null) {
-            for (MultipartFile f : files) {
-                String original = f.getOriginalFilename();
-                if (original == null)
-                    continue;
-                try {
-                    Path dest = uploadRoot.resolve(System.currentTimeMillis() + "_" + original);
-                    Files.copy(f.getInputStream(), dest);
-                    savedNames.add(dest.toString());
-                } catch (IOException e) {
-                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                            .body("Failed to store file: " + original);
-                }
+        List<String> attachmentUrls = new ArrayList<>();
+        if (files != null && files.length > 0) {
+            try {
+                // Upload files to Cloudinary
+                attachmentUrls = cloudinaryService.uploadFiles(files, "resolveit/complaints");
+                complaint.setAttachments(attachmentUrls);
+            } catch (IOException e) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body("Failed to upload files: " + e.getMessage());
             }
-            complaint.setAttachments(savedNames);
         }
 
         ComplaintDto dto = complaintService.submitComplaint(complaint, email);
