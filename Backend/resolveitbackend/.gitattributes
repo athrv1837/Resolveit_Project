@@ -1,5 +1,3 @@
 /mvnw text eol=lf
 *.cmd text eol=crlf
 
-application.properties
-/src/main/resources/application.properties
