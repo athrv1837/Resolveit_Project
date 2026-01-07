@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 
@@ -50,7 +51,7 @@ public class EmailServiceImpl implements EmailService {
     }
 
     @Override
-    @org.springframework.scheduling.annotation.Async
+    @Async
     public void sendRegistrationEmail(String to, String name) {
         if (mailSender == null) {
             log.info("MailSender not configured; skipping registration email to {}", to);
@@ -75,7 +76,7 @@ public class EmailServiceImpl implements EmailService {
     }
 
     @Override
-    @org.springframework.scheduling.annotation.Async
+    @Async
     public void sendPasswordResetEmail(String to, String token) {
         if (mailSender == null) {
             log.info("MailSender not configured; skipping password reset email to {}", to);
@@ -96,13 +97,13 @@ public class EmailServiceImpl implements EmailService {
             
             mailSender.send(message);
             log.info("Sent password reset email to {}", to);
-        } catch (jakarta.mail.MessagingException ex) {
+        } catch (MessagingException ex) {
             log.error("Failed to send password reset email to {}: {}", to, ex.getMessage());
         }
     }
 
     @Override
-    @org.springframework.scheduling.annotation.Async
+    @Async
     public void sendStatusUpdateEmail(String to, String referenceNumber, String status) {
         if (mailSender == null) {
             log.info("MailSender not configured; skipping status update email to {}", to);
@@ -127,7 +128,7 @@ public class EmailServiceImpl implements EmailService {
     }
 
     @Override
-    @org.springframework.scheduling.annotation.Async
+    @Async
     public void sendEscalationEmail(String to, String referenceNumber, int level, String reason) {
         if (mailSender == null) {
             log.info("MailSender not configured; skipping escalation email to {}", to);

@@ -91,7 +91,7 @@ public class ComplaintServiceImpl implements ComplaintService {
 
                 if (best != null) {
                     saved.setAssignedTo(best.getEmail());
-                    saved.setAssignedDepartment(best.getDepartment()); // ✅ Set department
+                    saved.setAssignedDepartment(best.getDepartment()); //Set department
                     saved.setStatus(ComplaintStatus.ASSIGNED);
                 }
             }

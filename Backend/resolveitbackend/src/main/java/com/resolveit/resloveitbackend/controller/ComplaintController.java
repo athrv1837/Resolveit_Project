@@ -17,7 +17,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.neo4j.Neo4jProperties.Authentication;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -94,7 +94,7 @@ public class ComplaintController {
 
     // Escalate a complaint (officer/admin)
     @PostMapping("/{id}/escalate")
-    public ResponseEntity<?> escalateComplaint(@PathVariable Long id, @RequestBody java.util.Map<String, String> body) {
+    public ResponseEntity<?> escalateComplaint(@PathVariable Long id, @RequestBody Map<String, String> body) {
         try {
             int level = Integer.parseInt(body.getOrDefault("level", "1"));
             String reason = body.getOrDefault("reason", "Escalated by officer");
@@ -111,10 +111,10 @@ public class ComplaintController {
     // Add a note (internal)
     @PostMapping("/{id}/notes")
     public ResponseEntity<?> addNote(@PathVariable Long id, @RequestBody Map<String, Object> body,
-            Authentication auth) {
+        Authentication auth) {
         String content = (String) body.getOrDefault("content", "");
         boolean isPrivate = Boolean.parseBoolean(String.valueOf(body.getOrDefault("isPrivate", "true")));
-        String createdBy = auth != null ? auth.getUsername() : "system";
+        String createdBy = auth != null ? auth.getName() : "system";
         if (content == null || content.isBlank())
             return ResponseEntity.badRequest().body("content required");
         try {
@@ -127,8 +127,7 @@ public class ComplaintController {
 
     // Add a public reply to citizen
     @PostMapping("/{id}/replies")
-    public ResponseEntity<?> addReply(@PathVariable Long id, @RequestBody java.util.Map<String, Object> body,
-            org.springframework.security.core.Authentication auth) {
+    public ResponseEntity<?> addReply(@PathVariable Long id, @RequestBody Map<String, Object> body,Authentication auth) {
         String content = (String) body.getOrDefault("content", "");
         boolean isAdminReply = Boolean.parseBoolean(String.valueOf(body.getOrDefault("isAdminReply", "false")));
         String createdBy = auth != null ? auth.getName() : "system";
@@ -144,8 +143,7 @@ public class ComplaintController {
 
     // Update priority
     @PostMapping("/{id}/priority")
-    public ResponseEntity<?> updatePriority(@PathVariable Long id, @RequestBody java.util.Map<String, String> body,
-            org.springframework.security.core.Authentication auth) {
+    public ResponseEntity<?> updatePriority(@PathVariable Long id, @RequestBody Map<String, String> body,Authentication auth) {
         String priority = body.get("priority");
         String requestedBy = auth != null ? auth.getName() : "system";
         if (priority == null || priority.isBlank())

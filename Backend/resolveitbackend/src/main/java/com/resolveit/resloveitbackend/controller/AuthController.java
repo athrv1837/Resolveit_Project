@@ -22,7 +22,7 @@ public class AuthController {
         this.userRepository = userRepository;
     }
 
-    // ✅ REGISTER endpoint with detailed feedback
+    //REGISTER endpoint with detailed feedback
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest req) {
         try {
@@ -39,7 +39,7 @@ public class AuthController {
         }
     }
 
-    // ✅ LOGIN endpoint with specific error handling
+    //LOGIN endpoint with specific error handling
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody AuthRequest req) {
         try {
@@ -56,7 +56,7 @@ public class AuthController {
         }
     }
 
-    // ✅ ME endpoint (fetch user info using token)
+    //ME endpoint (fetch user info using token)
     @GetMapping("/me")
     public ResponseEntity<?> me(Authentication authentication) {
         if (authentication == null) {

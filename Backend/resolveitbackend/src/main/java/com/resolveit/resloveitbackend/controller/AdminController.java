@@ -7,10 +7,13 @@ import com.resolveit.resloveitbackend.enums.ComplaintStatus;
 import com.resolveit.resloveitbackend.repository.ComplaintRepository;
 import com.resolveit.resloveitbackend.repository.OfficerRepository;
 import com.resolveit.resloveitbackend.repository.PendingOfficerRepository;
+import com.resolveit.resloveitbackend.service.EmailService;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -23,7 +26,7 @@ public class AdminController {
     private PendingOfficerRepository pendingRepo;
 
     @Autowired
-    private com.resolveit.resloveitbackend.service.EmailService emailService;
+    private EmailService emailService;
 
     @Autowired
     private OfficerRepository officerRepo;
@@ -130,18 +133,18 @@ public class AdminController {
         long officers = officerRepository.count();
 
         // Workload per officer
-        java.util.Map<String, Integer> workload = new java.util.HashMap<>();
+        Map<String, Integer> workload = new HashMap<>();
         officerRepository.findAll().forEach(o -> workload.put(o.getEmail(), complaintRepository.findByAssignedTo(o.getEmail()).size()));
 
         // Priority breakdown
-        java.util.Map<String, Long> priorityBreakdown = new java.util.HashMap<>();
+        Map<String, Long> priorityBreakdown = new HashMap<>();
         priorityBreakdown.put("low", all.stream().filter(c -> c.getPriority().name().equalsIgnoreCase("LOW")).count());
         priorityBreakdown.put("medium", all.stream().filter(c -> c.getPriority().name().equalsIgnoreCase("MEDIUM")).count());
         priorityBreakdown.put("high", all.stream().filter(c -> c.getPriority().name().equalsIgnoreCase("HIGH")).count());
         priorityBreakdown.put("urgent", all.stream().filter(c -> c.getPriority().name().equalsIgnoreCase("URGENT")).count());
 
         // Status breakdown - use hyphenated keys to match frontend normalization
-        java.util.Map<String, Long> statusBreakdown = new java.util.HashMap<>();
+        Map<String, Long> statusBreakdown = new HashMap<>();
         statusBreakdown.put("pending", pending);
         statusBreakdown.put("assigned", assigned);
         statusBreakdown.put("in-progress", inProgress);
@@ -149,7 +152,7 @@ public class AdminController {
         statusBreakdown.put("escalated", escalated);
         statusBreakdown.put("closed", closed);
 
-        java.util.Map<String, Object> out = new java.util.HashMap<>();
+        Map<String, Object> out = new HashMap<>();
         out.put("totalComplaints", totalComplaints);
         out.put("pending", pending);
         out.put("assigned", assigned);
