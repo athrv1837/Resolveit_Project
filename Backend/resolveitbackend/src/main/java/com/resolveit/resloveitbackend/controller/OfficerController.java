@@ -6,6 +6,7 @@ import com.resolveit.resloveitbackend.Model.PendingOfficer;
 import com.resolveit.resloveitbackend.repository.ComplaintRepository;
 import com.resolveit.resloveitbackend.repository.OfficerRepository;
 import com.resolveit.resloveitbackend.repository.PendingOfficerRepository;
+import com.resolveit.resloveitbackend.service.CloudinaryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -34,6 +35,9 @@ public class OfficerController {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private CloudinaryService cloudinaryService;
+
     
     @PostMapping(value = "/officers/register", consumes = {"multipart/form-data"})
     public ResponseEntity<String> registerOfficer(
@@ -49,29 +53,29 @@ public class OfficerController {
             }
 
             String encodedPassword = passwordEncoder.encode(password);
+            String certificateUrl = null;
+
+            // Upload certificate to Cloudinary if provided
+            if (certificate != null && !certificate.isEmpty()) {
+                try {
+                    certificateUrl = cloudinaryService.uploadFile(certificate, "officer_certificates");
+                    System.out.println("Certificate uploaded to Cloudinary: " + certificateUrl);
+                } catch (IOException e) {
+                    return ResponseEntity.internalServerError().body("Failed to upload certificate: " + e.getMessage());
+                }
+            }
 
             PendingOfficer officer = PendingOfficer.builder()
                     .name(name)
                     .email(email)
                     .password(encodedPassword)
                     .department(department != null && !department.isEmpty() ? department : "Unassigned")
+                    .certificateUrl(certificateUrl)
                     .approved(false)
                     .build();
 
-            // Save certificate if provided
-            if (certificate != null && !certificate.isEmpty()) {
-                String uploadDir = System.getProperty("user.dir") + "/uploads/officers/";
-                new File(uploadDir).mkdirs();
-                String safeFilename = email.replaceAll("[^a-zA-Z0-9.@_-]", "_") + "_" + certificate.getOriginalFilename();
-                File dest = new File(uploadDir + safeFilename);
-                certificate.transferTo(dest);
-                System.out.println("Certificate saved: " + dest.getAbsolutePath());
-            }
-
             pendingRepo.save(officer);
             return ResponseEntity.ok("Registration submitted. Await admin approval.");
-        } catch (IOException e) {
-            return ResponseEntity.internalServerError().body("Failed to upload certificate.");
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.internalServerError().body("Registration failed.");

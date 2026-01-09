@@ -243,7 +243,6 @@ public class EmailServiceImpl implements EmailService {
     }
 
     // ===== Template Builder =====
-
     private String getEmailTemplate(String title, String body, String accentColor) {
         return "<!DOCTYPE html>" +
             "<html lang='en'>" +

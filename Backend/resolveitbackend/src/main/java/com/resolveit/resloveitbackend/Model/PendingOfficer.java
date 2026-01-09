@@ -18,5 +18,6 @@ public class PendingOfficer {
     private String email;
     private String password; // store hashed password
     private String department;
+    private String certificateUrl;
     private boolean approved = false;
 }

@@ -49,6 +49,7 @@ public class AdminController {
                 .email(pending.getEmail())
                 .password(pending.getPassword())
             .department(pending.getDepartment())
+            .certificateUrl(pending.getCertificateUrl())
             .role("ROLE_OFFICER")
                 .build();
 

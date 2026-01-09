@@ -17,12 +17,6 @@ public class CloudinaryService {
     @Autowired
     private Cloudinary cloudinary;
 
-    /**
-     * Upload a single file to Cloudinary
-     * @param file the file to upload
-     * @param folder the folder in Cloudinary (e.g., "resolveit/complaints")
-     * @return the secure URL of the uploaded file
-     */
     public String uploadFile(MultipartFile file, String folder) throws IOException {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("File cannot be empty");
