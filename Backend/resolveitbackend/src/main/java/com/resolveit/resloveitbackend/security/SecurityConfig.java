@@ -28,7 +28,7 @@ public class SecurityConfig {
 
     private final JwtUtil jwtUtil;
     private final UserRepository userRepository;
-    private final OfficerRepository officerRepository; // ADD THIS
+    private final OfficerRepository officerRepository; 
 
     public SecurityConfig(JwtUtil jwtUtil, UserRepository userRepository, OfficerRepository officerRepository) {
         this.jwtUtil = jwtUtil;
@@ -38,7 +38,7 @@ public class SecurityConfig {
 
     @Bean
     public JwtAuthFilter jwtAuthFilter() {
-        return new JwtAuthFilter(jwtUtil, userRepository, officerRepository); // FIXED
+        return new JwtAuthFilter(jwtUtil, userRepository, officerRepository); 
     }
 
     @Bean

@@ -22,7 +22,7 @@ public class User {
     @Column(nullable = false)
     private String email;
 
-    @JsonIgnore // ✅ never expose password in API responses
+    @JsonIgnore
     @Column(nullable = false)
     private String password;
 
@@ -31,7 +31,7 @@ public class User {
 
     private Instant createdAt = Instant.now();
 
-    // ✅ Prevent circular references when Complaint → User → Complaint
+    //Prevent circular references when Complaint → User → Complaint
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnore
     private List<Complaint> complaints;
