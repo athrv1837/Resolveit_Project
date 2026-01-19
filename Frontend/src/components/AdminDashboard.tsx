@@ -519,11 +519,8 @@ export const AdminDashboard: React.FC = () => {
                       onChange={e => updateStatus(selectedComplaint.id, e.target.value as ComplaintStatus)}
                       className="input-field"
                     >
-                      <option value="pending">Pending</option>
+                      <option value="pending">Pending Approval</option>
                       <option value="assigned">Assigned</option>
-                      <option value="in-progress">In Progress</option>
-                      <option value="resolved">Resolved</option>
-                      <option value="escalated">Escalated</option>
                       <option value="closed">Closed</option>
                     </select>
                   </div>
@@ -540,6 +537,21 @@ export const AdminDashboard: React.FC = () => {
                     </select>
                   </div>
                 </div>
+
+                {/* Close Complaint Button */}
+                {selectedComplaint.status !== 'closed' && (
+                  <button 
+                    onClick={() => {
+                      if (confirm('Close this complaint? This action finalizes the complaint.')) {
+                        updateStatus(selectedComplaint.id, 'closed' as ComplaintStatus);
+                      }
+                    }} 
+                    className="btn-primary w-full py-3 font-semibold flex items-center justify-center gap-2"
+                  >
+                    <CheckCircle2 className="w-5 h-5" />
+                    Close Complaint
+                  </button>
+                )}
 
                 {/* Action Buttons */}
                 <div className="grid grid-cols-2 gap-3">

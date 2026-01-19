@@ -37,12 +37,6 @@ public class CloudinaryService {
         }
     }
 
-    /**
-     * Upload multiple files to Cloudinary
-     * @param files array of files to upload
-     * @param folder the folder in Cloudinary
-     * @return list of secure URLs
-     */
     public List<String> uploadFiles(MultipartFile[] files, String folder) throws IOException {
         List<String> urls = new ArrayList<>();
         if (files == null || files.length == 0) {

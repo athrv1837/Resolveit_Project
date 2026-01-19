@@ -157,10 +157,10 @@ export const OfficerDashboard: React.FC = () => {
                 <div className="flex items-center gap-4 mb-6 flex-wrap">
                   <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="input-field w-48 font-semibold shadow-lg">
                     <option value="all">All Status</option>
-                    <option value="pending">Pending</option>
                     <option value="assigned">Assigned</option>
                     <option value="in-progress">In Progress</option>
                     <option value="resolved">Resolved</option>
+                    <option value="escalated">Escalated</option>
                   </select>
 
                   <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="input-field w-52 font-semibold shadow-lg">
@@ -278,11 +278,17 @@ export const OfficerDashboard: React.FC = () => {
                     value={selectedComplaint.status}
                     onChange={(e) => updateStatus(selectedComplaint.id, e.target.value as ComplaintStatus)}
                     className="input-field w-full font-medium"
+                    disabled={selectedComplaint.status === 'closed'}
                   >
                     <option value="assigned">Assigned</option>
                     <option value="in-progress">In Progress</option>
                     <option value="resolved">Resolved</option>
+                    <option value="escalated">Escalated</option>
+                    {selectedComplaint.status === 'closed' && <option value="closed">Closed (Read-Only)</option>}
                   </select>
+                  {selectedComplaint.status === 'closed' && (
+                    <p className="text-xs text-red-600 mt-1 font-medium">⚠️ This complaint is closed and cannot be modified</p>
+                  )}
                 </div>
 
                 {/* Actions */}

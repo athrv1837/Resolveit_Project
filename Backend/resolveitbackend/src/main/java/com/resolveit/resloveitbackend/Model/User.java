@@ -10,7 +10,7 @@ import java.util.List;
 
 @Entity
 @Table(name = "users", uniqueConstraints = {@UniqueConstraint(columnNames = "email")})
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"}) // ✅ prevents proxy serialization errors
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class User {
 
     @Id
