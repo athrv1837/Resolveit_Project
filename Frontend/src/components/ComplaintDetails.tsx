@@ -6,7 +6,7 @@ import { Complaint } from '../types';
 import { Header } from './shared/Header';
 import { Footer } from './shared/Footer';
 import { ComplaintCard } from './shared/ComplaintCard';
-import { FileImage, ArrowLeft, UserCheck, X, Download, Eye, FileText, Music, Play } from 'lucide-react';
+import { FileImage, ArrowLeft, UserCheck, X, Download, Eye, FileText, Music, Play, CheckCircle2 } from 'lucide-react';
 
 const statusSteps = [
   { key: 'pending', label: 'Submitted' },
@@ -84,6 +84,7 @@ export const ComplaintDetails: React.FC = () => {
 
   const handleStatusChange = async (newStatus: any) => {
     if (!complaint) return;
+    console.log('handleStatusChange called with:', newStatus, 'type:', typeof newStatus);
     setStatusUpdateLoading(true);
     try {
       await updateComplaintStatus(complaint.id, newStatus);
@@ -91,7 +92,7 @@ export const ComplaintDetails: React.FC = () => {
       if (fresh) setComplaint(fresh);
     } catch (err) {
       console.error(err);
-      alert('Failed to update status');
+      alert('Failed to update status: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
       setStatusUpdateLoading(false);
     }
@@ -256,6 +257,57 @@ export const ComplaintDetails: React.FC = () => {
                   </div>
                 )}
 
+                {/* Admin: Status and Priority */}
+                {isAdmin() && (
+                  <div className="p-6 bg-gradient-to-br from-cyan-50 to-blue-50/50 border-2 border-cyan-200 rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300">
+                    <div className="flex items-center gap-4 mb-5">
+                      <div className="rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-500 p-3 shadow-lg">
+                        <CheckCircle2 className="w-6 h-6 text-white" />
+                      </div>
+                      <div>
+                        <div className="text-base font-extrabold text-slate-900">Status & Priority</div>
+                        <div className="text-sm text-slate-600 font-medium">Update complaint status and priority level</div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-xs uppercase font-bold text-slate-600 block mb-2">Status</label>
+                        <select
+                          value={complaint?.status || 'pending'}
+                          onChange={(e) => handleStatusChange(e.target.value)}
+                          disabled={complaint?.status === 'closed'}
+                          className="w-full border-2 border-cyan-300 rounded-xl p-3 shadow-lg focus:ring-4 focus:ring-cyan-500/20 focus:border-cyan-500 font-medium bg-white transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <option value="pending">Pending Approval</option>
+                          <option value="assigned">Assigned</option>
+                          <option value="closed">Closed</option>
+                        </select>
+                        {complaint?.status === 'closed' && (
+                          <p className="text-xs text-green-600 mt-2 font-medium">✓ Complaint is closed</p>
+                        )}
+                      </div>
+                      <div>
+                        <label className="text-xs uppercase font-bold text-slate-600 block mb-2">Priority</label>
+                        <select
+                          value={complaint?.priority || 'medium'}
+                          onChange={(e) => {
+                            if (complaint) {
+                              updateComplaintPriority(complaint.id, e.target.value as any);
+                              setComplaint({...complaint, priority: e.target.value as any});
+                            }
+                          }}
+                          className="w-full border-2 border-cyan-300 rounded-xl p-3 shadow-lg focus:ring-4 focus:ring-cyan-500/20 focus:border-cyan-500 font-medium bg-white transition-all duration-200"
+                        >
+                          <option value="low">Low</option>
+                          <option value="medium">Medium</option>
+                          <option value="high">High</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Description */}
                 <div className="card p-8 shadow-2xl border-2 border-slate-200/70">
                       <p className="text-xs text-slate-600 uppercase font-extrabold tracking-wider mb-3 flex items-center gap-2">
@@ -391,18 +443,25 @@ export const ComplaintDetails: React.FC = () => {
                       <div className="text-sm text-slate-700 font-medium bg-white px-4 py-3 rounded-xl border-2 border-blue-200 shadow-md">Assigned to: <span className="font-extrabold text-blue-700">{complaint?.assignedTo || 'Unassigned'}</span></div>
                       <div>
                         <label className="text-xs text-slate-600 block mb-2 font-extrabold tracking-wider uppercase">Update status</label>
-                        <select className="w-full border-2 border-blue-300 rounded-xl p-3 shadow-lg focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 font-semibold bg-white transition-all duration-200" value={normalizeStatus(complaint?.status)} onChange={(e) => handleStatusChange(e.target.value)}>
-                          <option value="pending">Pending</option>
+                        <select 
+                          className="w-full border-2 border-blue-300 rounded-xl p-3 shadow-lg focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 font-semibold bg-white transition-all duration-200" 
+                          value={normalizeStatus(complaint?.status)} 
+                          onChange={(e) => handleStatusChange(e.target.value)}
+                          disabled={complaint?.status === 'closed'}
+                        >
                           <option value="assigned">Assigned</option>
                           <option value="in-progress">In Progress</option>
                           <option value="escalated">Escalated</option>
                           <option value="resolved">Resolved</option>
-                          <option value="closed">Closed</option>
+                          {complaint?.status === 'closed' && <option value="closed">Closed (Read-Only)</option>}
                         </select>
+                        {complaint?.status === 'closed' && (
+                          <p className="text-xs text-red-600 mt-2 font-medium">⚠️ This complaint is closed by admin and cannot be modified</p>
+                        )}
                       </div>
                       <div className="flex justify-end gap-3 pt-2">
-                        <button className="btn-ghost hover:bg-green-50 hover:text-green-700 border-2 border-transparent hover:border-green-300" disabled={statusUpdateLoading} onClick={() => handleStatusChange('resolved')}>Mark Resolved</button>
-                        <button className="btn-primary" disabled={statusUpdateLoading} onClick={() => handleStatusChange('escalated')}>Escalate</button>
+                        <button className="btn-ghost hover:bg-green-50 hover:text-green-700 border-2 border-transparent hover:border-green-300" disabled={statusUpdateLoading || complaint?.status === 'closed'} onClick={() => handleStatusChange('resolved')}>Mark Resolved</button>
+                        <button className="btn-primary" disabled={statusUpdateLoading || complaint?.status === 'closed'} onClick={() => handleStatusChange('escalated')}>Escalate</button>
                       </div>
                     </div>
                   </div>

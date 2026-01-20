@@ -183,10 +183,14 @@ export const AdminDashboard: React.FC = () => {
     try {
       // convert to backend enum format (IN_PROGRESS, UNDER_REVIEW, etc.)
       const backendStatus = String(status).toUpperCase().replace(/-/g, '_');
+      console.log('AdminDashboard updateStatus: Converting', status, 'to', backendStatus);
       await api.updateComplaintStatus(id, backendStatus, null, token ?? undefined);
       setComplaints(prev => prev.map(c => c.id === id ? { ...c, status } : c));
       if (selectedComplaint?.id === id) setSelectedComplaint(prev => prev ? { ...prev, status } : null);
-    } catch { alert("Failed"); }
+    } catch (err) { 
+      console.error('Failed to update status:', err);
+      alert("Failed to update status: " + (err instanceof Error ? err.message : String(err))); 
+    }
   };
 
   const updatePriority = async (id: number, priority: ComplaintPriority) => {
@@ -518,11 +522,15 @@ export const AdminDashboard: React.FC = () => {
                       value={selectedComplaint.status}
                       onChange={e => updateStatus(selectedComplaint.id, e.target.value as ComplaintStatus)}
                       className="input-field"
+                      disabled={selectedComplaint.status === 'closed'}
                     >
                       <option value="pending">Pending Approval</option>
                       <option value="assigned">Assigned</option>
                       <option value="closed">Closed</option>
                     </select>
+                    {selectedComplaint.status === 'closed' && (
+                      <p className="text-xs text-green-600 mt-1 font-medium">✓ Complaint is closed</p>
+                    )}
                   </div>
                   <div>
                     <label className="text-xs uppercase font-bold text-slate-600 block mb-2">Priority</label>

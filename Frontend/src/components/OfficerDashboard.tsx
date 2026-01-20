@@ -54,12 +54,15 @@ export const OfficerDashboard: React.FC = () => {
   const updateStatus = async (id: number, status: ComplaintStatus) => {
     try {
       console.log("Updating status for complaint", id, "to", status);
-      await api.updateComplaintStatus(id, status,user?.name,token ?? undefined);
+      // Convert lowercase kebab-case to uppercase underscore-separated format
+      const backendStatus = String(status).toUpperCase().replace(/-/g, '_');
+      await api.updateComplaintStatus(id, backendStatus, user?.name, token ?? undefined);
       setComplaints(prev => prev.map(c => c.id === id ? { ...c, status } : c));
       if (selectedComplaint?.id === id) {
         setSelectedComplaint({ ...selectedComplaint, status });
       }
-    } catch {
+    } catch (err) {
+      console.error("Failed to update status:", err);
       alert("Failed to update status. Try again.");
     }
   };
@@ -287,7 +290,7 @@ export const OfficerDashboard: React.FC = () => {
                     {selectedComplaint.status === 'closed' && <option value="closed">Closed (Read-Only)</option>}
                   </select>
                   {selectedComplaint.status === 'closed' && (
-                    <p className="text-xs text-red-600 mt-1 font-medium">⚠️ This complaint is closed and cannot be modified</p>
+                    <p className="text-xs text-red-600 mt-1 font-medium">⚠️ This complaint is closed by admin and cannot be modified</p>
                   )}
                 </div>
 

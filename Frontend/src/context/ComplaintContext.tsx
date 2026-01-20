@@ -179,6 +179,8 @@ export const ComplaintProvider: React.FC<{ children: ReactNode }> = ({ children 
     setComplaints(prev => prev.map(c => (c.id === id ? { ...c, status } : c)));
     try {
       const backendStatus = String(status).toUpperCase().replace(/-/g, '_');
+      console.log('updateComplaintStatus: Converting', status, 'to', backendStatus, 'for id', id);
+      console.log('updateComplaintStatus: User email:', user?.email, 'Token present:', !!token);
       const updated = await api.updateComplaintStatus(id, backendStatus, user?.email ?? undefined, token ?? undefined);
       if (updated) {
         const normalized = normalizeComplaint(updated);
@@ -188,7 +190,8 @@ export const ComplaintProvider: React.FC<{ children: ReactNode }> = ({ children 
       fetchComplaints();
     } catch (err) {
       console.error('Failed to update status:', err);
-      alert('Failed to update status');
+      console.error('Error details:', err instanceof Error ? err.message : String(err));
+      alert('Failed to update status: ' + (err instanceof Error ? err.message : String(err)));
       fetchComplaints();
     }
   };

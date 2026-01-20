@@ -31,12 +31,12 @@ public class Complaint {
 
     // Status as Enum
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "status", nullable = false, columnDefinition = "VARCHAR(20)")
     private ComplaintStatus status = ComplaintStatus.PENDING;
 
     // Priority as Enum
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "priority", nullable = false, columnDefinition = "VARCHAR(20)")
     private ComplaintPriority priority = ComplaintPriority.MEDIUM;
 
     // Assigned officer email
