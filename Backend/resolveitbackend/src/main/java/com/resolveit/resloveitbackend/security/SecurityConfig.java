@@ -1,6 +1,6 @@
 package com.resolveit.resloveitbackend.security;
 
-import com.resolveit.resloveitbackend.repository.OfficerRepository; // ADD THIS
+import com.resolveit.resloveitbackend.repository.OfficerRepository; 
 import com.resolveit.resloveitbackend.repository.UserRepository;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

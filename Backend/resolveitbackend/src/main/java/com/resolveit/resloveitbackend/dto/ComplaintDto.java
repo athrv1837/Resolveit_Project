@@ -33,6 +33,9 @@ public class ComplaintDto {
     // Replies
     private java.util.List<ReplyDto> replies;
 
+    // Status History
+    private java.util.List<StatusHistoryDto> statusHistory;
+
     // Getters and setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -76,4 +79,6 @@ public class ComplaintDto {
     public void setEscalatedAt(LocalDateTime escalatedAt) { this.escalatedAt = escalatedAt; }
     public java.util.List<ReplyDto> getReplies() { return replies; }
     public void setReplies(java.util.List<ReplyDto> replies) { this.replies = replies; }
+    public java.util.List<StatusHistoryDto> getStatusHistory() { return statusHistory; }
+    public void setStatusHistory(java.util.List<StatusHistoryDto> statusHistory) { this.statusHistory = statusHistory; }
 }

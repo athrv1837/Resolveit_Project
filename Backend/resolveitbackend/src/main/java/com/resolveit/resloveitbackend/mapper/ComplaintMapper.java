@@ -44,6 +44,21 @@ public class ComplaintMapper {
             d.setReplies(replies);
         }
 
+        // Status History mapping
+        if (c.getStatusHistory() != null) {
+            java.util.List<com.resolveit.resloveitbackend.dto.StatusHistoryDto> history = new java.util.ArrayList<>();
+            for (com.resolveit.resloveitbackend.Model.ComplaintStatusHistory h : c.getStatusHistory()) {
+                com.resolveit.resloveitbackend.dto.StatusHistoryDto hd = new com.resolveit.resloveitbackend.dto.StatusHistoryDto();
+                hd.setId(h.getId());
+                hd.setStatus(h.getStatus());
+                hd.setChangedAt(h.getChangedAt());
+                hd.setChangedBy(h.getChangedBy());
+                hd.setNotes(h.getNotes());
+                history.add(hd);
+            }
+            d.setStatusHistory(history);
+        }
+
         // Escalation
         d.setEscalated(c.isEscalated());
         d.setEscalationLevel(c.getEscalationLevel());

@@ -3,6 +3,7 @@ package com.resolveit.resloveitbackend.serviceImpl;
 import com.resolveit.resloveitbackend.Model.Complaint;
 import com.resolveit.resloveitbackend.Model.ComplaintNote;
 import com.resolveit.resloveitbackend.Model.ComplaintReply;
+import com.resolveit.resloveitbackend.Model.ComplaintStatusHistory;
 import com.resolveit.resloveitbackend.Model.Officer;
 import com.resolveit.resloveitbackend.Model.User;
 import com.resolveit.resloveitbackend.dto.ComplaintDto;
@@ -15,6 +16,7 @@ import com.resolveit.resloveitbackend.mapper.ComplaintMapper;
 import com.resolveit.resloveitbackend.repository.ComplaintRepository;
 import com.resolveit.resloveitbackend.repository.ComplaintNoteRepository;
 import com.resolveit.resloveitbackend.repository.ComplaintReplyRepository;
+import com.resolveit.resloveitbackend.repository.ComplaintStatusHistoryRepository;
 import com.resolveit.resloveitbackend.repository.OfficerRepository;
 import com.resolveit.resloveitbackend.repository.UserRepository;
 import com.resolveit.resloveitbackend.service.ComplaintService;
@@ -33,16 +35,19 @@ public class ComplaintServiceImpl implements ComplaintService {
     private final ComplaintRepository complaintRepository;
     private final ComplaintNoteRepository noteRepository;
     private final ComplaintReplyRepository replyRepository;
+    private final ComplaintStatusHistoryRepository statusHistoryRepository;
     private final UserRepository userRepository;
     private final OfficerRepository officerRepository;
     private final com.resolveit.resloveitbackend.service.EmailService emailService;
 
     public ComplaintServiceImpl(ComplaintRepository complaintRepository, ComplaintNoteRepository noteRepository,
-            ComplaintReplyRepository replyRepository, UserRepository userRepository,
+            ComplaintReplyRepository replyRepository, ComplaintStatusHistoryRepository statusHistoryRepository,
+            UserRepository userRepository,
             OfficerRepository officerRepository, com.resolveit.resloveitbackend.service.EmailService emailService) {
         this.complaintRepository = complaintRepository;
         this.noteRepository = noteRepository;
         this.replyRepository = replyRepository;
+        this.statusHistoryRepository = statusHistoryRepository;
         this.userRepository = userRepository;
         this.officerRepository = officerRepository;
         this.emailService = emailService;
@@ -80,6 +85,10 @@ public class ComplaintServiceImpl implements ComplaintService {
 
         Complaint saved = complaintRepository.save(complaint);
 
+        // Save initial status history (PENDING)
+        ComplaintStatusHistory initialHistory = new ComplaintStatusHistory(saved, saved.getStatus(), email, "Initial submission");
+        statusHistoryRepository.save(initialHistory);
+
         // Auto-assign if HIGH or URGENT priority and at least one officer exists
         if (saved.getPriority() == ComplaintPriority.HIGH || saved.getPriority() == ComplaintPriority.URGENT) {
             List<Officer> officers = officerRepository.findAll();
@@ -93,11 +102,16 @@ public class ComplaintServiceImpl implements ComplaintService {
                     saved.setAssignedTo(best.getEmail());
                     saved.setAssignedDepartment(best.getDepartment()); //Set department
                     saved.setStatus(ComplaintStatus.ASSIGNED);
+                    saved = complaintRepository.save(saved);
+                    
+                    // Save status history for ASSIGNED
+                    ComplaintStatusHistory assignedHistory = new ComplaintStatusHistory(saved, ComplaintStatus.ASSIGNED, "system", "Auto-assigned to " + best.getName());
+                    statusHistoryRepository.save(assignedHistory);
                 }
             }
+        } else {
+            saved = complaintRepository.save(saved);
         }
-
-        saved = complaintRepository.save(saved);
         // Notify submitter that complaint was created (best-effort)
         try {
             emailService.sendStatusUpdateEmail(saved.getSubmittedBy(), saved.getReferenceNumber(),
@@ -136,20 +150,26 @@ public class ComplaintServiceImpl implements ComplaintService {
         Complaint c = complaintRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Complaint not found"));
         try {
-            c.setStatus(ComplaintStatus.valueOf(status));
+            ComplaintStatus newStatus = ComplaintStatus.valueOf(status);
+            c.setStatus(newStatus);
+            c.setLastUpdatedAt(LocalDateTime.now());
+            c.setLastUpdatedBy(requestedBy);
+            Complaint saved = complaintRepository.save(c);
+            
+            // Save status history
+            ComplaintStatusHistory history = new ComplaintStatusHistory(saved, newStatus, requestedBy, "Status updated to " + newStatus.name());
+            statusHistoryRepository.save(history);
+            
+            try {
+                if (saved.getSubmittedBy() != null)
+                    emailService.sendStatusUpdateEmail(saved.getSubmittedBy(), saved.getReferenceNumber(),
+                            saved.getStatus().name());
+            } catch (Exception ignored) {
+            }
+            return ComplaintMapper.toDto(saved);
         } catch (IllegalArgumentException ex) {
             throw new InvalidStatusException("Invalid status value: " + status);
         }
-        c.setLastUpdatedAt(LocalDateTime.now());
-        c.setLastUpdatedBy(requestedBy);
-        Complaint saved = complaintRepository.save(c);
-        try {
-            if (saved.getSubmittedBy() != null)
-                emailService.sendStatusUpdateEmail(saved.getSubmittedBy(), saved.getReferenceNumber(),
-                        saved.getStatus().name());
-        } catch (Exception ignored) {
-        }
-        return ComplaintMapper.toDto(saved);
     }
 
     @Override

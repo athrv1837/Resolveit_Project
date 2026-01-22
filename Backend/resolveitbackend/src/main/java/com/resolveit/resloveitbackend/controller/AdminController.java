@@ -3,10 +3,12 @@ package com.resolveit.resloveitbackend.controller;
 import com.resolveit.resloveitbackend.Model.Complaint;
 import com.resolveit.resloveitbackend.Model.Officer;
 import com.resolveit.resloveitbackend.Model.PendingOfficer;
+import com.resolveit.resloveitbackend.Model.ComplaintStatusHistory;
 import com.resolveit.resloveitbackend.enums.ComplaintStatus;
 import com.resolveit.resloveitbackend.repository.ComplaintRepository;
 import com.resolveit.resloveitbackend.repository.OfficerRepository;
 import com.resolveit.resloveitbackend.repository.PendingOfficerRepository;
+import com.resolveit.resloveitbackend.repository.ComplaintStatusHistoryRepository;
 import com.resolveit.resloveitbackend.service.EmailService;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,12 +38,15 @@ public class AdminController {
 
     @Autowired
     private OfficerRepository officerRepository;
+
+    @Autowired
+    private ComplaintStatusHistoryRepository statusHistoryRepository;
+
     // === EXISTING: Approve Officer ===
     @PostMapping("/approve/{id}")
     public ResponseEntity<String> approveOfficer(@PathVariable Long id) {
         PendingOfficer pending = pendingRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Pending officer not found"));
-
         pending.setApproved(true);
 
         Officer newOfficer = Officer.builder()
@@ -104,6 +109,11 @@ public class AdminController {
         complaint.setAssignedTo(officerEmail);
         complaint.setStatus(ComplaintStatus.ASSIGNED); // Auto-set to ASSIGNED
         complaintRepository.save(complaint);
+        
+        // Save status history for ASSIGNED
+        ComplaintStatusHistory history = new ComplaintStatusHistory(complaint, ComplaintStatus.ASSIGNED, "admin", "Assigned to " + officerOpt.get().getName());
+        statusHistoryRepository.save(history);
+        
         long afterSave = System.currentTimeMillis();
         System.out.println("[Admin Assign] ✅ Successfully assigned complaint " + complaintId + " to " + officerEmail + " (assignedTo=" + complaint.getAssignedTo() + ") in " + (afterSave - start) + "ms");
 

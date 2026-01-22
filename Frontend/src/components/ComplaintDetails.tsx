@@ -141,12 +141,25 @@ export const ComplaintDetails: React.FC = () => {
 
     const s = normalizeStatus(complaint.status);
 
-    // Submitted
-    if (complaint.submittedAt) events.push({ label: 'Submitted', date: new Date(complaint.submittedAt).toLocaleString(), done: true });
+    // Use status history if available
+    if (complaint.statusHistory && complaint.statusHistory.length > 0) {
+      complaint.statusHistory.forEach(history => {
+        const statusLabel = normalizeStatus(history.status);
+        events.push({
+          label: `Status: ${statusLabel}${history.notes ? ' - ' + history.notes : ''}`,
+          date: new Date(history.changedAt).toLocaleString(),
+          done: true
+        });
+      });
+    } else {
+      // Fallback to old behavior if no status history
+      // Submitted
+      if (complaint.submittedAt) events.push({ label: 'Submitted', date: new Date(complaint.submittedAt).toLocaleString(), done: true });
 
-    // Assigned
-    if (complaint.assignedTo) {
-      events.push({ label: `Assigned to ${complaint.assignedTo}`, done: ['assigned','in-progress','escalated','resolved','closed'].includes(s) });
+      // Assigned
+      if (complaint.assignedTo) {
+        events.push({ label: `Assigned to ${complaint.assignedTo}`, done: ['assigned','in-progress','escalated','resolved','closed'].includes(s) });
+      }
     }
 
     // Replies (each reply is an event)
@@ -157,9 +170,6 @@ export const ComplaintDetails: React.FC = () => {
 
     // Escalated
     if (complaint.escalated) events.push({ label: `Escalated (Level ${complaint.escalationLevel || '?'})`, date: complaint.escalatedAt ? new Date(complaint.escalatedAt).toLocaleString() : undefined, done: true });
-
-    // Final status event
-    events.push({ label: `Status: ${s}`, date: complaint.lastUpdatedAt ? new Date(complaint.lastUpdatedAt).toLocaleString() : undefined, done: ['resolved','closed'].includes(s) });
 
     // If no events were found other than status, show a placeholder
     if (events.length === 0) {

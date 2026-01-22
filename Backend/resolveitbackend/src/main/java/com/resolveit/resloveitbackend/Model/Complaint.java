@@ -85,6 +85,10 @@ public class Complaint {
     @OneToMany(mappedBy = "complaint", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ComplaintReply> replies;
 
+    // Status History (track all status changes)
+    @OneToMany(mappedBy = "complaint", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ComplaintStatusHistory> statusHistory;
+
     // Constructors
     public Complaint() {}
 
@@ -152,4 +156,7 @@ public class Complaint {
 
     public java.util.List<ComplaintReply> getReplies() { return replies; }
     public void setReplies(java.util.List<ComplaintReply> replies) { this.replies = replies; }
+
+    public java.util.List<ComplaintStatusHistory> getStatusHistory() { return statusHistory; }
+    public void setStatusHistory(java.util.List<ComplaintStatusHistory> statusHistory) { this.statusHistory = statusHistory; }
 }

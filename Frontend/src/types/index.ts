@@ -40,6 +40,14 @@ export interface Reply {
   isAdminReply?: boolean;
 }
 
+export interface StatusHistory {
+  id: number;
+  status: string;
+  changedAt: string;
+  changedBy: string;
+  notes?: string;
+}
+
 export interface Feedback {
   id: number;
   content: string;
@@ -86,6 +94,7 @@ export interface Complaint {
 
   notes: Note[];
   replies: Reply[];
+  statusHistory?: StatusHistory[];
   feedback?: Feedback;
 }
 
